@@ -14,7 +14,7 @@ export async function callGeminiJson(params: {
   user: string;
   maxOutputTokens?: number;
 }): Promise<string> {
-  const fetchRes = await (fetch(
+  const fetchRes = (await fetch(
     `${GEMINI_BASE_URL}/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`,
     {
       method: "POST",
@@ -35,7 +35,7 @@ export async function callGeminiJson(params: {
         },
       }),
     }
-  ) as Promise<globalThis.Response>);
+  )) as unknown as globalThis.Response;
 
   const json = (await fetchRes.json()) as Record<string, unknown>;
 
