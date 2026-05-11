@@ -1,1 +1,3 @@
-export { default } from "../dist/app.mjs";
+
+import app from "../dist/app.mjs";
+export default app;
