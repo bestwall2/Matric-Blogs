@@ -1,3 +1,9 @@
 {
-  "buildCommand": "cd ../.. && pnpm run build:libs && cd artifacts/api-server && npx tsc --build && pnpm run build"
+  "buildCommand": "cd ../.. && pnpm run build:libs && cd artifacts/api-server && npx tsc --build && pnpm run build",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.mjs"
+    }
+  ]
 }
