@@ -24,7 +24,8 @@ router.post("/ai/generate", adminAuth, async (req, res): Promise<void> => {
     instructions,
   } = body.data;
 
-  const wordCount = { short: 500, medium: 1000, long: 2000 }[length];
+  const wordCounts = { short: 500, medium: 1000, long: 2000 } as const;
+  const wordCount = wordCounts[length as keyof typeof wordCounts];
 
   const systemPrompt = `You are an expert blog writer and SEO specialist. You write high-quality,
 Google AdSense-approved content. Your content is:
