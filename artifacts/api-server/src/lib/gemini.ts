@@ -14,7 +14,7 @@ export async function callGeminiJson(params: {
   user: string;
   maxOutputTokens?: number;
 }): Promise<string> {
-  const res = await fetch(
+  const fetchRes = await (fetch(
     `${GEMINI_BASE_URL}/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`,
     {
       method: "POST",
@@ -35,14 +35,14 @@ export async function callGeminiJson(params: {
         },
       }),
     }
-  );
+  ) as Promise<globalThis.Response>);
 
-  const json = (await res.json()) as Record<string, unknown>;
+  const json = (await fetchRes.json()) as Record<string, unknown>;
 
-  if (!res.ok) {
+  if (!fetchRes.ok) {
     const msg =
       (json as { error?: { message?: string } })?.error?.message ||
-      `Gemini error (${res.status})`;
+      `Gemini error (${fetchRes.status})`;
     throw new Error(msg);
   }
 
