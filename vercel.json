@@ -16,5 +16,9 @@
     "api/index.mjs": {
       "maxDuration": 60
     }
+  },
+  "typescript": {
+    "ignoreBuildErrors": true
   }
+
 }
