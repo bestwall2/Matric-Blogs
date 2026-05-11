@@ -1,0 +1,694 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: MatricBlog API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: posts
+    description: Blog post operations
+  - name: categories
+    description: Category operations
+  - name: newsletter
+    description: Newsletter operations
+  - name: ai
+    description: AI generation operations
+  - name: upload
+    description: File upload operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List published posts with pagination
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 12
+        - name: categorySlug
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [latest, views]
+            default: latest
+      responses:
+        "200":
+          description: Paginated posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostsPage"
+
+  /posts/featured:
+    get:
+      operationId: getFeaturedPosts
+      tags: [posts]
+      summary: Get latest published posts for the home page
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 13
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+  /posts/stats:
+    get:
+      operationId: getPostsStats
+      tags: [posts]
+      summary: Get aggregate stats for the blog
+      responses:
+        "200":
+          description: Blog statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlogStats"
+
+  /posts/admin:
+    get:
+      operationId: listAdminPosts
+      tags: [posts]
+      summary: List all posts for admin
+      responses:
+        "200":
+          description: All posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+  /posts/slug/{slug}:
+    get:
+      operationId: getPostBySlug
+      tags: [posts]
+      summary: Get a published post by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          description: Not found
+
+  /posts/id/{id}:
+    get:
+      operationId: getPostById
+      tags: [posts]
+      summary: Get a post by id (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Post found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          description: Not found
+
+  /posts/{id}:
+    patch:
+      operationId: updatePost
+      tags: [posts]
+      summary: Update a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInput"
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /posts/create:
+    post:
+      operationId: createPost
+      tags: [posts]
+      summary: Create a new post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInput"
+      responses:
+        "201":
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  /posts/view:
+    post:
+      operationId: incrementPostView
+      tags: [posts]
+      summary: Increment post view count
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ViewInput"
+      responses:
+        "200":
+          description: View counted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all categories
+      responses:
+        "200":
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /newsletter:
+    post:
+      operationId: subscribeNewsletter
+      tags: [newsletter]
+      summary: Subscribe to newsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsletterInput"
+      responses:
+        "200":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
+  /ai/generate:
+    post:
+      operationId: aiGeneratePost
+      tags: [ai]
+      summary: Generate a blog post with AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiGenerateInput"
+      responses:
+        "200":
+          description: Generated post data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiGenerateResult"
+
+  /ai/improve:
+    post:
+      operationId: aiImproveContent
+      tags: [ai]
+      summary: Improve HTML content with AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiImproveInput"
+      responses:
+        "200":
+          description: Improved content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiImproveResult"
+
+  /upload:
+    post:
+      operationId: uploadImage
+      tags: [upload]
+      summary: Upload an image file
+      description: Accepts multipart/form-data with a single `file` field. Called directly via fetch (not via generated client hook) to support binary file upload.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file to upload
+      responses:
+        "200":
+          description: Upload result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResult"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    OkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        duplicate:
+          type: boolean
+      required:
+        - ok
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        name_ar:
+          type: ["string", "null"]
+        slug:
+          type: string
+        description:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+        created_at:
+          type: string
+      required:
+        - id
+        - name
+        - slug
+        - created_at
+
+    CategoryInput:
+      type: object
+      properties:
+        name:
+          type: string
+        name_ar:
+          type: ["string", "null"]
+        slug:
+          type: string
+        description:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+      required:
+        - name
+        - slug
+
+    Author:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        bio:
+          type: ["string", "null"]
+        avatar:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        title_ar:
+          type: ["string", "null"]
+        slug:
+          type: string
+        excerpt:
+          type: ["string", "null"]
+        content:
+          type: string
+        content_ar:
+          type: ["string", "null"]
+        featured_image:
+          type: ["string", "null"]
+        category_id:
+          type: ["string", "null"]
+        author_id:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [draft, published, scheduled]
+        published_at:
+          type: ["string", "null"]
+        scheduled_at:
+          type: ["string", "null"]
+        meta_title:
+          type: ["string", "null"]
+        meta_description:
+          type: ["string", "null"]
+        meta_keywords:
+          type: ["array", "null"]
+          items:
+            type: string
+        og_image:
+          type: ["string", "null"]
+        canonical_url:
+          type: ["string", "null"]
+        structured_data:
+          type: ["object", "null"]
+        robots_meta:
+          type: ["string", "null"]
+        schema_type:
+          type: ["string", "null"]
+        view_count:
+          type: ["integer", "null"]
+        reading_time:
+          type: ["integer", "null"]
+        ai_generated:
+          type: ["boolean", "null"]
+        ai_model:
+          type: ["string", "null"]
+        ai_prompt:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        categories:
+          oneOf:
+            - $ref: "#/components/schemas/Category"
+            - type: "null"
+        authors:
+          oneOf:
+            - $ref: "#/components/schemas/Author"
+            - type: "null"
+      required:
+        - id
+        - title
+        - slug
+        - content
+        - status
+        - created_at
+        - updated_at
+
+    PostInput:
+      type: object
+      properties:
+        title:
+          type: string
+        title_ar:
+          type: ["string", "null"]
+        slug:
+          type: string
+        excerpt:
+          type: ["string", "null"]
+        content:
+          type: string
+        content_ar:
+          type: ["string", "null"]
+        featured_image:
+          type: ["string", "null"]
+        category_id:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [draft, published, scheduled]
+        published_at:
+          type: ["string", "null"]
+        scheduled_at:
+          type: ["string", "null"]
+        meta_title:
+          type: ["string", "null"]
+        meta_description:
+          type: ["string", "null"]
+        meta_keywords:
+          type: ["array", "null"]
+          items:
+            type: string
+        og_image:
+          type: ["string", "null"]
+        canonical_url:
+          type: ["string", "null"]
+        robots_meta:
+          type: ["string", "null"]
+        schema_type:
+          type: ["string", "null"]
+        reading_time:
+          type: ["integer", "null"]
+      required:
+        - title
+        - slug
+        - content
+        - status
+
+    PostsPage:
+      type: object
+      properties:
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        total:
+          type: integer
+      required:
+        - posts
+        - total
+
+    BlogStats:
+      type: object
+      properties:
+        articles:
+          type: integer
+        categories:
+          type: integer
+        views:
+          type: integer
+      required:
+        - articles
+        - categories
+        - views
+
+    ViewInput:
+      type: object
+      properties:
+        slug:
+          type: string
+      required:
+        - slug
+
+    NewsletterInput:
+      type: object
+      properties:
+        email:
+          type: string
+      required:
+        - email
+
+    AiGenerateInput:
+      type: object
+      properties:
+        topic:
+          type: string
+        language:
+          type: string
+          enum: [Arabic, English, Both]
+        type:
+          type: string
+          enum: [Guide, News, Review, Comparison, HowTo]
+        length:
+          type: string
+          enum: [short, medium, long]
+        tone:
+          type: string
+          enum: [Educational, Conversational, Technical, Journalistic]
+        keyword:
+          type: string
+        includeFAQ:
+          type: boolean
+        includeTOC:
+          type: boolean
+        instructions:
+          type: string
+        categoryId:
+          type: string
+      required:
+        - topic
+        - language
+        - type
+        - length
+        - tone
+        - keyword
+        - includeFAQ
+        - includeTOC
+
+    AiGenerateResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+      required:
+        - success
+        - data
+
+    AiImproveInput:
+      type: object
+      properties:
+        html:
+          type: string
+        focusKeyword:
+          type: string
+        instruction:
+          type: string
+      required:
+        - html
+
+    AiImproveResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            content:
+              type: string
+            seo_notes:
+              type: array
+              items:
+                type: string
+      required:
+        - success
+        - data
+
+    UploadUrlInput:
+      type: object
+      properties:
+        filename:
+          type: string
+      required:
+        - filename
+
+    UploadResult:
+      type: object
+      properties:
+        url:
+          type: string
+        error:
+          type: string
+      required: []
