@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import Link from "next/link";
 import { Clock, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, getReadingTime, cn } from "@/lib/utils";

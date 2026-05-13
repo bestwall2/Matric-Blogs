@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X, Rss } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -13,7 +16,7 @@ const NAV_LINKS = [
 ];
 
 export default function SiteHeader() {
-  const [location] = useLocation();
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -24,7 +27,7 @@ export default function SiteHeader() {
   }, []);
 
   const isActive = (href: string) =>
-    href === "/" ? location === "/" : location.startsWith(href);
+    href === "/" ? pathname === "/" : pathname?.startsWith(href);
 
   return (
     <header

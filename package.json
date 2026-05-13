@@ -4,6 +4,7 @@
   "packageManager": "pnpm@11.1.0",
   "license": "MIT",
   "scripts": {
+    "dev": "pnpm -F @workspace/matric-blog dev",
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"${npm_config_user_agent:-}${npm_execpath:-}\" in *pnpm*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build:libs": "pnpm -r --filter \"./lib/**\" --if-present run build",
     "build": "pnpm run build:libs && pnpm run typecheck && pnpm -r --filter \"./artifacts/**\" --if-present run build",

@@ -22,6 +22,6 @@ export function getReadingTime(content: string | null | undefined, rt?: number |
 }
 
 export function getApiBase(): string {
-  const base = import.meta.env.BASE_URL ?? "/";
+  const base = process.env.BASE_PATH ?? "/";
   return base.replace(/\/$/, "") + "/api";
 }

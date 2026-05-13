@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import Link from "next/link";
 import { Rss, Twitter, Facebook, Youtube } from "lucide-react";
 
 export default function SiteFooter() {

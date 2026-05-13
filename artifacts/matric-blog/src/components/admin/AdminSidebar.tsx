@@ -1,4 +1,7 @@
-import { Link, useLocation } from "wouter";
+'use client';
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { LayoutDashboard, FileText, Tag, Sparkles, Search, LogOut, Rss } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,7 +19,7 @@ interface AdminSidebarProps {
 }
 
 export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
-  const [location] = useLocation();
+  const pathname = usePathname();
 
   return (
     <aside className="w-60 bg-card border-l border-border flex flex-col h-full shrink-0">
@@ -36,7 +39,7 @@ export default function AdminSidebar({ onSignOut }: AdminSidebarProps) {
             <div
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-                location.startsWith(href)
+                pathname?.startsWith(href)
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
