@@ -9,7 +9,7 @@
     },
     {
       "source": "/((?!api/|_next/|_static/|favicon.ico).*)",
-      "destination": "/$1"
+      "destination": "/artifacts/matric-blog/$1"
     }
   ],
   "functions": {
