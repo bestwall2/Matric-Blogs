@@ -28,11 +28,16 @@ router.post("/ai/generate", adminAuth, async (req, res): Promise<void> => {
   const wordCount = wordCounts[length as keyof typeof wordCounts];
 
   const systemPrompt = `You are an expert blog writer and SEO specialist. You write high-quality,
-Google AdSense-approved content. Your content is:
-- 100% original and human-like
+Google AdSense-approved content that passes AI detection tools. CRITICAL RULES:
+- Write with a HUMAN VOICE: use first-person, personal experience, specific examples
+- NEVER use generic AI filler phrases: avoid "في عصر السرعة الرقمية", "لا شك أن", "يتجه العالم", "في عصرنا الرقمي"
+- Write like a real person sharing their actual experience and knowledge
+- Include concrete numbers, data, and real examples
+- Use natural conversational Arabic (not formal MSA robot-speak)
+- Each paragraph must add unique value — no fluff or padding
+- Avoid FAQ sections unless absolutely necessary (they look like AI)
 - Well-structured with proper H2/H3 headings
 - SEO-optimized with natural keyword usage (not keyword stuffing)
-- Informative, accurate, and valuable to readers
 - Free of any content that violates Google policies
 - Written in a ${tone} tone
 You return ONLY valid JSON, no markdown fences, no preamble.`;
@@ -44,16 +49,26 @@ Requirements:
 - Article type: ${type}
 - Target word count: approximately ${wordCount} words
 - Focus keyword: "${keyword}"
-- ${includeFAQ ? "Include a FAQ section at the end with 5 Q&A pairs (use h2 for FAQ and h3 for each question)." : ""}
-- ${includeTOC ? "Start with a nav titled 'Table of contents' listing anchor links to each h2 section." : ""}
+- ${includeFAQ ? "" : "DO NOT include a FAQ section — it looks like AI-generated content."}
+- ${includeFAQ ? "Include a FAQ section at the end with 3-5 natural Q&A pairs (use h2 for FAQ and h3 for each question). Make questions feel real, not obvious." : ""}
+- ${includeTOC ? "Start with a 'Table of Contents' nav listing anchor links to each h2 section." : ""}
 - ${instructions ? `Additional instructions: ${instructions}` : ""}
+
+CRITICAL HUMANIZATION RULES (ignore at your own risk):
+1. ADD personal experience: use phrases like "في تجربتي", "استخدمت هذا لمدة أسبوع", "جربت الطريقتين"
+2. ADD real numbers: "حصلت على 1500 مشاهدة", "وفرت 3 ساعات يومياً", "دفعت 200 درهم فقط"
+3. Use natural conversational tone — NOT formal academic Arabic
+4. AVOID these exact phrases: "في عصر السرعة الرقمية", "لا شك أن", "يتجه العالم نحو", "في عصرنا الرقمي", "من المهم أن", "تجدر الإشارة"
+5. ADD specific examples of real tools, prices, results, and personal outcomes
+6. Keep paragraphs short (2-4 sentences max per paragraph)
+7. Start with a hook that feels like a human talking, not an encyclopedia
 
 Return a JSON object with this exact structure:
 {
   "title": "SEO-optimized article title (max 60 chars)",
   "title_ar": "Arabic version of title if language is Arabic or Both, else empty string",
   "slug": "url-friendly-slug-latin",
-  "excerpt": "Compelling meta description (150-160 chars)",
+  "excerpt": "Compelling meta description (150-160 chars) — must sound like a human wrote it",
   "content": "Full HTML article content with proper h2/h3 tags, paragraphs, lists",
   "content_ar": "Arabic HTML content if language is Arabic or Both, else empty string",
   "meta_title": "SEO meta title",
