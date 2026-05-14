@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import type { AuditAnalysisResult } from "@/lib/audit/types";
 import {
   ChevronDown, ChevronUp, CheckCircle2, Circle, AlertCircle, AlertTriangle,
   Download, Lightbulb, ClipboardList, TrendingUp, FileSearch, UserCheck,
   Palette, Globe, Zap, Shield, DollarSign, BookOpen, Brain, Target,
   ChevronRight, Save, Plus, X, Edit3, MessageSquare, ThumbsUp, ExternalLink,
-  ArrowUpDown
+  ArrowUpDown, Play, Loader2, Radio, RefreshCw, ScanLine, Bug
 } from "lucide-react";
 
 type ItemStatus = "pending" | "in_progress" | "done";
@@ -248,6 +249,67 @@ export default function AdminAuditPage() {
   const [suggestions, setSuggestions] = useState<{ text: string; category: string; time: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // AI Analysis state
+  const [analysisResult, setAnalysisResult] = useState<AuditAnalysisResult | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState("");
+
+  const runAnalysis = useCallback(async () => {
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    setAnalysisResult(null);
+    setAnalysisProgress("جارٍ فحص الصفحات...");
+    try {
+      const siteUrl = window.location.origin;
+      const res = await fetch("/api/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: siteUrl }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.error || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || "Analysis failed");
+      setAnalysisResult(json.data);
+      setAnalysisProgress("");
+
+      // Auto-populate checklist items based on results
+      const data: AuditAnalysisResult = json.data;
+      const updates: Record<string, ItemStatus> = {};
+
+      // Mark items as done based on analysis
+      if (data.sitemap.accessible) updates["plan-3"] = "done";
+      if (data.robots.accessible) updates["seo-1"] = "done";
+      if (data.trust.hasPrivacyPolicy) updates["trust-4"] = "done";
+      if (data.trust.hasTermsOfService) updates["trust-4"] = "done";
+      if (data.trust.hasContactPage) updates["trust-2"] = "in_progress";
+      if (data.content.articleCount >= 3) updates["adsense-1"] = "in_progress";
+      if (data.content.articleCount >= 25) updates["adsense-1"] = "done";
+      if (data.content.aiProbability < 50) updates["adsense-3"] = "in_progress";
+      if (data.content.hasPersonalVoice) updates["ai-4"] = "done";
+      if (data.content.hasDataOrStats) updates["ai-6"] = "in_progress";
+      if (data.pages.some(p => p.schemaTypes.includes("BreadcrumbList"))) updates["seo-3"] = "done";
+      if (data.pages.some(p => p.schemaTypes.includes("Organization") || p.schemaTypes.includes("WebSite"))) updates["seo-4"] = "done";
+      if (data.performance.hasNextImage) updates["perf-1"] = "done";
+
+      setSections(prev => prev.map(s => ({
+        ...s,
+        items: s.items.map(i => ({
+          ...i,
+          status: updates[i.id] || i.status,
+        }))
+      })));
+    } catch (err: any) {
+      setAnalysisError(err.message || "فشل التحليل");
+      setAnalysisProgress("");
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const saved = loadFromStorage();
     if (saved) {
@@ -454,6 +516,18 @@ export default function AdminAuditPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={runAnalysis}
+                disabled={analysisLoading}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-l from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 disabled:from-emerald-500/30 disabled:to-emerald-600/30 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/25"
+              >
+                {analysisLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ScanLine className="w-4 h-4" />
+                )}
+                {analysisLoading ? "جارٍ التحليل..." : "تحليل AI"}
+              </button>
+              <button
                 onClick={resetAudit}
                 className="px-3 py-2 text-xs text-white/30 hover:text-red-400 border border-white/10 rounded-xl hover:border-red-500/30 transition-all"
               >
@@ -498,6 +572,103 @@ export default function AdminAuditPage() {
               <p className="text-[10px] text-white/30 mt-1">تقدير بعد الإصلاحات</p>
             </div>
           </div>
+
+          {/* AI Analysis Results */}
+          {analysisLoading && (
+            <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-4 md:p-5 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                <span className="text-sm font-bold text-white">تحليل الموقع...</span>
+              </div>
+              <p className="text-xs text-white/40">{analysisProgress || "جارٍ فحص وتحليل الصفحات"}</p>
+              <div className="mt-3 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-emerald-400 animate-pulse" style={{ width: "60%" }} />
+              </div>
+            </div>
+          )}
+
+          {analysisError && (
+            <div className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4 md:p-5 mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Bug className="w-4 h-4 text-red-400" />
+                <span className="text-sm font-bold text-red-400">فشل التحليل</span>
+              </div>
+              <p className="text-xs text-white/50">{analysisError}</p>
+              <button onClick={runAnalysis} className="mt-2 text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+                إعادة المحاولة
+              </button>
+            </div>
+          )}
+
+          {analysisResult && (
+            <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-4 md:p-5 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Radio className="w-4 h-4 text-emerald-400" />
+                  <h3 className="font-bold text-sm text-white">نتائج التحليل الآلي</h3>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full font-semibold">Live</span>
+                </div>
+                <button onClick={runAnalysis} disabled={analysisLoading} className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+                  <RefreshCw className="w-3 h-3" />
+                  تحديث
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                <div className="bg-white/[0.03] rounded-xl p-3">
+                  <p className="text-[10px] text-white/30">الصفحات الممسوحة</p>
+                  <p className="text-lg font-black text-white">{analysisResult.summary.pagesScanned}</p>
+                </div>
+                <div className="bg-white/[0.03] rounded-xl p-3">
+                  <p className="text-[10px] text-white/30">المشاكل المكتشفة</p>
+                  <p className="text-lg font-black text-red-400">{analysisResult.summary.totalIssues}</p>
+                </div>
+                <div className="bg-white/[0.03] rounded-xl p-3">
+                  <p className="text-[10px] text-white/30">مشاكل حرجة</p>
+                  <p className="text-lg font-black text-rose-400">{analysisResult.summary.criticalIssues}</p>
+                </div>
+                <div className="bg-white/[0.03] rounded-xl p-3">
+                  <p className="text-[10px] text-white/30">احتمال الموافقة</p>
+                  <p className="text-lg font-black text-emerald-400">{analysisResult.summary.approvalProbability}%</p>
+                </div>
+              </div>
+
+              {/* Preview of found issues */}
+              {analysisResult.summary.totalIssues > 0 && (
+                <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {analysisResult.summary.criticalIssues > 0 && (
+                    <div className="mb-1">
+                      <p className="text-[10px] text-red-400 font-semibold mb-1">🔴 حرجة ({analysisResult.summary.criticalIssues})</p>
+                      {analysisResult.pages.flatMap(p => p.issues.filter(i => i.type === "critical")).slice(0, 5).map((issue, i) => (
+                        <div key={i} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
+                          <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
+                          <span>{issue.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {analysisResult.content.issues.filter(i => i.type === "critical").slice(0, 3).map((issue, i) => (
+                    <div key={`c-${i}`} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
+                      <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
+                      <span>{issue.message}</span>
+                    </div>
+                  ))}
+                  {analysisResult.seo.issues.filter(i => i.type === "critical").slice(0, 3).map((issue, i) => (
+                    <div key={`s-${i}`} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
+                      <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
+                      <span>{issue.message}</span>
+                    </div>
+                  ))}
+                  {analysisResult.trust.issues.filter(i => i.type === "critical").slice(0, 3).map((issue, i) => (
+                    <div key={`t-${i}`} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
+                      <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
+                      <span>{issue.message}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
