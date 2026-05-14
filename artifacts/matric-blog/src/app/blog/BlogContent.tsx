@@ -28,7 +28,7 @@ export default function BlogContent({ initialData, initialCategories }: { initia
       },
     }
   );
-  const { data: categories } = useListCategories({ query: { initialData: initialCategories } });
+  const { data: categories } = useListCategories({ query: { queryKey: ['categories'], initialData: initialCategories } });
 
   const posts = listData?.posts ?? [];
   const total = listData?.total ?? 0;
