@@ -1,15 +1,11 @@
 {
   "buildCommand": "corepack pnpm -r --filter \"./lib/**\" --if-present run build && corepack pnpm --filter @workspace/api-server run build && cd artifacts/matric-blog && corepack pnpm run build",
   "installCommand": "corepack pnpm install --frozen-lockfile",
-  "outputDirectory": "artifacts/matric-blog/.next/standalone",
+  "outputDirectory": "artifacts/matric-blog/.next",
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.mjs"
-    },
-    {
-      "source": "/((?!api/|_next/|_static/|favicon.ico).*)",
-      "destination": "/artifacts/matric-blog/$1"
     }
   ],
   "functions": {
