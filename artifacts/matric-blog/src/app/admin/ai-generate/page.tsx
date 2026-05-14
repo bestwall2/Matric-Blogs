@@ -11,6 +11,7 @@ import AdminSidebar from "@/components/admin/AdminSidebar";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import Image from "next/image";
 import { Sparkles, Save, Eye, Image as ImageIcon, Loader2, Download } from "lucide-react";
 
 type GeneratedPost = {
@@ -295,9 +296,11 @@ export default function AdminAiGenerate() {
 
                   {generatedImage && !imageLoading && (
                     <div className="space-y-2">
-                      <img
+                      <Image
                         src={generatedImage}
                         alt="Generated featured image"
+                        width={800}
+                        height={450}
                         className="w-full aspect-video object-cover rounded-lg border border-border"
                       />
                       <a

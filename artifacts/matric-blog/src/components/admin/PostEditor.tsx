@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
 import {
   useCreatePost, useGetPostById, getGetPostByIdQueryKey,
   useUpdatePost, useListCategories, getListAdminPostsQueryKey
@@ -337,7 +338,7 @@ export default function PostEditor() {
               <div className="rounded-xl border border-border bg-card p-4 space-y-3">
                 <Label className="text-xs font-bold text-foreground">الصورة البارزة</Label>
                 {form.featured_image && (
-                  <img src={form.featured_image} alt="" className="w-full h-32 object-cover rounded-lg" />
+                  <Image src={form.featured_image} alt="" width={400} height={160} className="w-full h-32 object-cover rounded-lg" />
                 )}
                 <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-4 cursor-pointer hover:border-primary/40 transition-colors bg-secondary">
                   <Upload className="w-5 h-5 text-muted-foreground mb-1" />
