@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FileText, Tag, Sparkles, Search, LogOut, Rss, Menu, X, Youtube, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, FileText, Tag, Sparkles, Search, LogOut, Rss, Menu, X, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { href: "/admin/ai-generate", icon: Sparkles, label: "توليد بالذكاء" },
   { href: "/admin/seo", icon: Search, label: "أدوات SEO" },
   { href: "/admin/youtube-to-blog", icon: Youtube, label: "يوتيوب → مقال" },
-  { href: "/admin/audit", icon: ShieldCheck, label: "فحص AdSense" },
 ];
 
 interface AdminSidebarProps {

@@ -74,7 +74,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* AI Audit Card */}
-          <Link href="/admin/audit">
+          <Link href="/admin/seo">
             <div className="group rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 md:p-5 mb-4 hover:border-emerald-500/40 transition-all cursor-pointer">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -83,10 +83,10 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm text-white">فحص AdSense الشامل</h3>
+                      <h3 className="font-bold text-sm text-white">تحليل AdSense</h3>
                       <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full font-semibold">AI</span>
                     </div>
-                    <p className="text-xs text-white/40 mt-0.5">تحليل آلي للموقع لاكتشاف مشاكل AdSense و SEO والمحتوى</p>
+                    <p className="text-xs text-white/40 mt-0.5">فحص آلي للموقع — موجود في أدوات SEO</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
