@@ -1,6 +1,17 @@
+import type { Metadata } from "next";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { Mail, Twitter, MessageSquare } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "تواصل معنا — ماتريكبلوغ",
+  description: "تواصل مع فريق ماتريكبلوغ عبر البريد الإلكتروني أو تويتر أو واتساب. يسعدنا الاستماع إلى آرائك واقتراحاتك.",
+  openGraph: {
+    title: "تواصل معنا — ماتريكبلوغ",
+    description: "تواصل مع فريق ماتريكبلوغ.",
+    type: "website",
+  },
+};
 
 export default function Contact() {
   return (

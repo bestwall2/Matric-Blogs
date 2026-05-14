@@ -1,49 +1,69 @@
-'use client';
-
-import { useState } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Clock, Eye } from "lucide-react";
-import { useGetFeaturedPosts, useListCategories } from "@workspace/api-client-react";
-import type { Post } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ArticleCard from "@/components/blog/ArticleCard";
 import NewsletterSection from "@/components/blog/NewsletterSection";
-import { formatDate, getReadingTime, cn } from "@/lib/utils";
+import { formatDate, getReadingTime } from "@/lib/utils";
+import HomeFilteredPosts from "./HomeFilteredPosts";
 
-export default function Home() {
-  const { data: posts, isLoading } = useGetFeaturedPosts({ limit: 13 });
-  const { data: categories } = useListCategories();
-  const [activeCat, setActiveCat] = useState<string | null>(null);
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://matric-blogs-26.vercel.app";
 
-  const allPosts = posts ?? [];
-  const hero = allPosts[0];
-  const secondary = allPosts.slice(1, 4);
-  const remaining = activeCat
-    ? allPosts.slice(1).filter((p) => p.categories?.slug === activeCat)
-    : allPosts.slice(1);
+export const metadata: Metadata = {
+  title: "ماتريكبلوغ — أخبار كرة القدم والتقنية",
+  description: "ماتريكبلوغ — موقعك المتخصص في أخبار كرة القدم والبث المباشر والتقنية باللغة العربية.",
+  openGraph: {
+    title: "ماتريكبلوغ",
+    description: "ماتريكبلوغ — موقعك المتخصص في أخبار كرة القدم والبث المباشر والتقنية.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ماتريكبلوغ",
+    description: "ماتريكبلوغ — أخبار كرة القدم والتقنية.",
+  },
+};
+
+async function getFeaturedPosts() {
+  try {
+    const res = await fetch(`${SITE_URL}/api/posts/featured?limit=13`, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+    return res.json();
+  } catch { return []; }
+}
+
+async function getCategories() {
+  try {
+    const res = await fetch(`${SITE_URL}/api/categories`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    return res.json();
+  } catch { return []; }
+}
+
+export default async function Home() {
+  const [allPosts, categories] = await Promise.all([getFeaturedPosts(), getCategories()]);
+
+  const hero = allPosts?.[0];
+  const secondary = allPosts?.slice(1, 4) ?? [];
+  const remaining = allPosts?.slice(1) ?? [];
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main>
-        <section className="pt-20">
-          {isLoading ? (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-              <Skeleton className="w-full h-96 rounded-2xl" />
-            </div>
-          ) : hero ? (
+        {hero && (
+          <section className="pt-20">
             <HeroPost post={hero} />
-          ) : null}
-        </section>
+          </section>
+        )}
 
         {secondary.length > 0 && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {secondary.map((post) => (
+              {secondary.map((post: any) => (
                 <ArticleCard key={post.id} post={post} />
               ))}
             </div>
@@ -59,54 +79,7 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-
-          {categories && categories.length > 0 && (
-            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-              <button
-                onClick={() => setActiveCat(null)}
-                className={cn(
-                  "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
-                  activeCat === null
-                    ? "bg-primary text-white"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                )}
-                data-testid="filter-all"
-              >
-                الكل
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCat(cat.slug === activeCat ? null : cat.slug)}
-                  className={cn(
-                    "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors",
-                    activeCat === cat.slug
-                      ? "bg-primary text-white"
-                      : "bg-secondary text-muted-foreground hover:text-foreground"
-                  )}
-                  data-testid={`filter-cat-${cat.slug}`}
-                >
-                  {cat.name_ar || cat.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 rounded-xl" />
-              ))}
-            </div>
-          ) : remaining.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {remaining.map((post) => (
-                <ArticleCard key={post.id} post={post} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground py-12">لا توجد مقالات في هذه الفئة</p>
-          )}
+          <HomeFilteredPosts posts={remaining} categories={categories ?? []} />
         </section>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -118,7 +91,7 @@ export default function Home() {
   );
 }
 
-function HeroPost({ post }: { post: Post }) {
+function HeroPost({ post }: { post: any }) {
   const title = post.title_ar || post.title;
   const cat = post.categories;
   const readingTime = getReadingTime(post.content, post.reading_time);
@@ -129,7 +102,6 @@ function HeroPost({ post }: { post: Post }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      data-testid={`hero-post-${post.id}`}
       className="block max-w-7xl mx-auto px-4 sm:px-6 group"
     >
       <div className="relative overflow-hidden rounded-2xl h-[480px] md:h-[520px] bg-secondary">

@@ -1,6 +1,17 @@
+import type { Metadata } from "next";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { Rss, Target, Users, Globe } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "من نحن — ماتريكبلوغ",
+  description: "ماتريكبلوغ — موقعك الرائد في أخبار كرة القدم والبث المباشر والمحتوى التقني باللغة العربية.",
+  openGraph: {
+    title: "من نحن — ماتريكبلوغ",
+    description: "ماتريكبلوغ — موقعك الرائد في أخبار كرة القدم والبث المباشر والمحتوى التقني.",
+    type: "website",
+  },
+};
 
 export default function About() {
   return (
