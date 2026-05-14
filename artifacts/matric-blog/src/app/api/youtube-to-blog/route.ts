@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { YoutubeTranscript } from "youtube-transcript-plus";
+import { YoutubeTranscript } from "youtube-transcript";
 
 function extractVideoId(input: string): string | null {
   try {
@@ -7,7 +7,6 @@ function extractVideoId(input: string): string | null {
     if (url.hostname.includes("youtu.be")) return url.pathname.slice(1);
     return url.searchParams.get("v");
   } catch {
-    // maybe it's already a plain ID
     if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
     return null;
   }
@@ -21,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (!url) return NextResponse.json({ error: "Missing YouTube URL" }, { status: 400 });
 
   const videoId = extractVideoId(url);
-  if (!videoId) return NextResponse.json({ error: "Invalid YouTube URL" }, { status: 400 });
+  if (!videoId) return NextResponse.json({ error: "رابط يوتيوب غير صالح" }, { status: 400 });
 
   // 1. Fetch transcript
   let transcript: string;
@@ -29,9 +28,29 @@ export async function POST(req: NextRequest) {
     const segments = await YoutubeTranscript.fetchTranscript(videoId);
     transcript = segments.map((s) => s.text).join(" ");
     if (!transcript.trim()) throw new Error("empty");
-  } catch (e) {
-    console.error("YoutubeTranscript fetch error:", e);
-    return NextResponse.json({ error: "فشل في جلب النص من الفيديو. تأكد أن الفيديو يحتوي على ترجمة." }, { status: 422 });
+  } catch (e: any) {
+    const msg = e?.message || "";
+    console.error("Transcript fetch error:", msg);
+
+    // Helpful error messages
+    if (msg.includes("disabled") || msg.includes("No transcripts")) {
+      return NextResponse.json({
+        error: "هذا الفيديو لا يحتوي على ترجمة (Subtitles). يجب أن يحتوي الفيديو على ترجمة يدوية أو تلقائية.",
+        tip: "جرّب فيديو آخر مثل: https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      }, { status: 422 });
+    }
+    if (msg.includes("not found") || msg.includes("unavailable")) {
+      return NextResponse.json({ error: "الفيديو غير موجود أو غير متاح" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      error: "فشل في جلب النص من الفيديو. تأكد أن:",
+      tips: [
+        "الفيديو موجود ومتاح للعموم",
+        "الفيديو يحتوي على ترجمة (CC)",
+        "الرابط صحيح",
+      ],
+    }, { status: 422 });
   }
 
   // 2. Convert with Gemini
@@ -49,6 +68,10 @@ Instructions:
 - Language: ${language || "Arabic"}
 - Tone: ${tone || "Educational"}
 - ${instructions ? `Extra instructions: ${instructions}` : ""}
+
+CRITICAL: Write with a HUMAN voice. Use personal experience, avoid AI filler phrases.
+Never start with "في عصر السرعة الرقمية" or similar generic openers.
+Use natural Arabic, not formal robot-speak.
 
 Return ONLY a valid JSON object (no markdown, no extra text) with these exact fields:
 {
@@ -80,7 +103,7 @@ Return ONLY a valid JSON object (no markdown, no extra text) with these exact fi
 
   const geminiData = await geminiRes.json();
   if (!geminiRes.ok) {
-    console.error("Youtube-to-blog Gemini API error:", geminiData);
+    console.error("Gemini API error:", geminiData);
     return NextResponse.json({ error: geminiData?.error?.message ?? "Gemini error" }, { status: 500 });
   }
 
@@ -90,7 +113,7 @@ Return ONLY a valid JSON object (no markdown, no extra text) with these exact fi
     const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
     return NextResponse.json({ post: parsed, transcriptLength: transcript.length });
   } catch (e) {
-    console.error("Youtube-to-blog JSON parsing error:", e, "Raw response:", raw);
+    console.error("JSON parsing error:", e, "Raw:", raw.slice(0, 200));
     return NextResponse.json({ error: "Failed to parse Gemini response", raw }, { status: 500 });
   }
 }
