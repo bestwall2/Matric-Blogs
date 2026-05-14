@@ -73,10 +73,22 @@
       "namedRegex": "^/about(?:/)?$"
     },
     {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
       "page": "/admin/ai-generate",
       "regex": "^/admin/ai\\-generate(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/admin/ai\\-generate(?:/)?$"
+    },
+    {
+      "page": "/admin/audit",
+      "regex": "^/admin/audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/audit(?:/)?$"
     },
     {
       "page": "/admin/categories",
@@ -115,6 +127,24 @@
       "namedRegex": "^/admin/seo(?:/)?$"
     },
     {
+      "page": "/admin/youtube-to-blog",
+      "regex": "^/admin/youtube\\-to\\-blog(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/youtube\\-to\\-blog(?:/)?$"
+    },
+    {
+      "page": "/api/generate-image",
+      "regex": "^/api/generate\\-image(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/generate\\-image(?:/)?$"
+    },
+    {
+      "page": "/api/youtube-to-blog",
+      "regex": "^/api/youtube\\-to\\-blog(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/youtube\\-to\\-blog(?:/)?$"
+    },
+    {
       "page": "/blog",
       "regex": "^/blog(?:/)?$",
       "routeKeys": {},
@@ -131,6 +161,18 @@
       "regex": "^/privacy(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/privacy(?:/)?$"
+    },
+    {
+      "page": "/robots.txt",
+      "regex": "^/robots\\.txt(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/robots\\.txt(?:/)?$"
+    },
+    {
+      "page": "/sitemap.xml",
+      "regex": "^/sitemap\\.xml(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sitemap\\.xml(?:/)?$"
     },
     {
       "page": "/terms",
