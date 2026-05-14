@@ -1,6 +1,7 @@
 'use client';
 
-import { FileText, Tag, Eye, Plus, TrendingUp, Clock, ArrowUpRight, PenLine } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileText, Tag, Eye, Plus, TrendingUp, Clock, ArrowUpRight, PenLine, ShieldCheck, ScanLine, AlertTriangle, Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useGetPostsStats, useListAdminPosts } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,35 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
+
+          {/* AI Audit Card */}
+          <Link href="/admin/audit">
+            <div className="group rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 md:p-5 mb-4 hover:border-emerald-500/40 transition-all cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-sm text-white">فحص AdSense الشامل</h3>
+                      <span className="text-[10px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded-full font-semibold">AI</span>
+                    </div>
+                    <p className="text-xs text-white/40 mt-0.5">تحليل آلي للموقع لاكتشاف مشاكل AdSense و SEO والمحتوى</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-white/30">
+                    <ScanLine className="w-3.5 h-3.5" />
+                    <span>يفحص 7+ صفحات</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                    <ArrowUpRight className="w-4 h-4 text-white/30 group-hover:text-emerald-400" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
             <div className="flex items-center justify-between px-5 md:px-6 py-4 border-b border-white/[0.06]">
