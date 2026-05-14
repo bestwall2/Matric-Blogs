@@ -11,7 +11,7 @@ import AdminSidebar from "@/components/admin/AdminSidebar";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles, Save, Eye } from "lucide-react";
+import { Sparkles, Save, Eye, Image as ImageIcon, Loader2, Download } from "lucide-react";
 
 type GeneratedPost = {
   title?: string;
@@ -45,13 +45,21 @@ export default function AdminAiGenerate() {
     includeTOC: true,
     instructions: "",
   });
+
   const [result, setResult] = useState<GeneratedPost | null>(null);
   const [preview, setPreview] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
 
-  if (authLoading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="text-muted-foreground text-sm">جاري التحقق...</div></div>;
+  if (authLoading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-muted-foreground text-sm">جاري التحقق...</div>
+    </div>
+  );
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
+    setGeneratedImage(null);
     generate.mutate(
       { data: form },
       {
@@ -62,6 +70,27 @@ export default function AdminAiGenerate() {
         onError: (err) => toast.error("فشل التوليد: " + (err as Error).message),
       }
     );
+  };
+
+  const handleGenerateImage = async () => {
+    if (!result) return;
+    setImageLoading(true);
+    try {
+      const prompt = `High quality blog featured image for an article about: ${result.title_ar || result.title || form.topic}. Professional, modern, vibrant, editorial style photography. No text or watermarks.`;
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل توليد الصورة");
+      setGeneratedImage(data.image);
+      toast.success("تم توليد الصورة بنجاح");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setImageLoading(false);
+    }
   };
 
   const handleSaveDraft = () => {
@@ -82,8 +111,8 @@ export default function AdminAiGenerate() {
           status: "draft",
           published_at: null,
           scheduled_at: null,
-          featured_image: null,
-          og_image: null,
+          featured_image: generatedImage || null,
+          og_image: generatedImage || null,
           canonical_url: null,
           robots_meta: null,
           schema_type: null,
@@ -108,6 +137,7 @@ export default function AdminAiGenerate() {
           <h1 className="text-2xl font-black text-foreground mb-6">توليد محتوى بالذكاء الاصطناعي</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Form */}
             <form onSubmit={handleGenerate} className="space-y-4" data-testid="form-ai-generate">
               <div className="rounded-xl border border-border bg-card p-5 space-y-4">
                 <div className="space-y-1.5">
@@ -118,7 +148,6 @@ export default function AdminAiGenerate() {
                   <Label>الكلمة المفتاحية</Label>
                   <Input value={form.keyword} onChange={(e) => setForm({ ...form, keyword: e.target.value })} required className="bg-secondary border-border text-right" data-testid="input-keyword" />
                 </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>اللغة</Label>
@@ -168,7 +197,6 @@ export default function AdminAiGenerate() {
                     </Select>
                   </div>
                 </div>
-
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox checked={form.includeTOC} onCheckedChange={(v) => setForm({ ...form, includeTOC: !!v })} data-testid="check-toc" />
@@ -179,21 +207,21 @@ export default function AdminAiGenerate() {
                     <span className="text-sm">أسئلة وأجوبة</span>
                   </label>
                 </div>
-
                 <div className="space-y-1.5">
                   <Label>تعليمات إضافية (اختياري)</Label>
-                  <Input value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} className="bg-secondary border-border text-right" data-testid="input-instructions" />
+                  <Input value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} className="bg-secondary border-border text-right" placeholder="مثال: ركز على جمهور مغربي" data-testid="input-instructions" />
                 </div>
               </div>
-
               <Button type="submit" disabled={generate.isPending} className="w-full bg-primary hover:bg-primary/90 text-white gap-2" data-testid="button-generate">
                 <Sparkles className="w-4 h-4" />
                 {generate.isPending ? "جاري التوليد..." : "توليد المقال"}
               </Button>
             </form>
 
+            {/* Result */}
             {result && (
               <div className="space-y-4">
+                {/* Article result */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-bold text-foreground">النتيجة</h2>
@@ -206,10 +234,8 @@ export default function AdminAiGenerate() {
                       </Button>
                     </div>
                   </div>
-
                   <h3 className="font-bold text-foreground mb-1">{result.title_ar || result.title}</h3>
                   {result.excerpt && <p className="text-xs text-muted-foreground mb-3">{result.excerpt}</p>}
-
                   {result.seo_score && (
                     <div className="flex items-center gap-2 mb-3">
                       <div className="text-xs text-muted-foreground">SEO:</div>
@@ -219,7 +245,6 @@ export default function AdminAiGenerate() {
                       <span className="text-xs font-bold text-primary">{result.seo_score}%</span>
                     </div>
                   )}
-
                   <div className="max-h-64 overflow-auto text-xs border border-border rounded-lg p-3 bg-secondary font-mono">
                     {preview ? (
                       <div className="article-html" dangerouslySetInnerHTML={{ __html: result.content || "" }} />
@@ -227,7 +252,6 @@ export default function AdminAiGenerate() {
                       <pre className="whitespace-pre-wrap text-muted-foreground">{result.content?.slice(0, 1000)}...</pre>
                     )}
                   </div>
-
                   {result.seo_notes && result.seo_notes.length > 0 && (
                     <div className="mt-3">
                       <p className="text-xs font-bold text-foreground mb-1">ملاحظات SEO:</p>
@@ -236,6 +260,64 @@ export default function AdminAiGenerate() {
                           <li key={i} className="text-xs text-muted-foreground">• {note}</li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Image generation */}
+                <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-bold text-foreground flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-primary" />
+                      الصورة البارزة
+                    </h2>
+                    <Button
+                      size="sm"
+                      onClick={handleGenerateImage}
+                      disabled={imageLoading}
+                      className="bg-primary hover:bg-primary/90 text-white gap-1.5 text-xs"
+                      data-testid="button-generate-image"
+                    >
+                      {imageLoading ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> جاري التوليد...</>
+                      ) : (
+                        <><Sparkles className="w-3.5 h-3.5" /> {generatedImage ? "إعادة التوليد" : "توليد صورة"}</>
+                      )}
+                    </Button>
+                  </div>
+
+                  {imageLoading && (
+                    <div className="w-full aspect-video rounded-lg bg-secondary border border-border flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <p className="text-xs text-muted-foreground">جاري توليد الصورة بالذكاء الاصطناعي...</p>
+                    </div>
+                  )}
+
+                  {generatedImage && !imageLoading && (
+                    <div className="space-y-2">
+                      <img
+                        src={generatedImage}
+                        alt="Generated featured image"
+                        className="w-full aspect-video object-cover rounded-lg border border-border"
+                      />
+                      <a
+                        href={generatedImage}
+                        download="featured-image.png"
+                        className="flex items-center justify-center gap-1.5 w-full py-2 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-secondary transition-colors"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        تحميل الصورة
+                      </a>
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        ستُحفظ الصورة تلقائياً مع المقال عند الضغط على "حفظ مسودة"
+                      </p>
+                    </div>
+                  )}
+
+                  {!generatedImage && !imageLoading && (
+                    <div className="w-full aspect-video rounded-lg bg-secondary border border-dashed border-border flex flex-col items-center justify-center gap-2">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                      <p className="text-xs text-muted-foreground">اضغط على "توليد صورة" لإنشاء صورة بارزة للمقال</p>
                     </div>
                   )}
                 </div>
