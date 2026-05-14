@@ -1,7 +1,9 @@
 export const GEMINI_BASE_URL =
   "https://generativelanguage.googleapis.com/v1beta";
 export const GEMINI_MODEL =
-  process.env.GEMINI_MODEL?.trim() || "gemini-2.0-flash";
+  (process.env.GEMINI_MODEL && process.env.GEMINI_MODEL.trim().length > 0)
+    ? process.env.GEMINI_MODEL.trim()
+    : "gemini-2.5-flash";
 
 export function getGeminiApiKey() {
   const key = process.env.GEMINI_API_KEY?.trim();
@@ -43,6 +45,7 @@ export async function callGeminiJson(params: {
     const msg =
       (json as { error?: { message?: string } })?.error?.message ||
       `Gemini error (${fetchRes.status})`;
+    console.error("Gemini API Request Failed:", { status: fetchRes.status, json });
     throw new Error(msg);
   }
 

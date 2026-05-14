@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
     const segments = await YoutubeTranscript.fetchTranscript(videoId);
     transcript = segments.map((s) => s.text).join(" ");
     if (!transcript.trim()) throw new Error("empty");
-  } catch {
+  } catch (e) {
+    console.error("YoutubeTranscript fetch error:", e);
     return NextResponse.json({ error: "فشل في جلب النص من الفيديو. تأكد أن الفيديو يحتوي على ترجمة." }, { status: 422 });
   }
 
@@ -66,7 +67,7 @@ Return ONLY a valid JSON object (no markdown, no extra text) with these exact fi
 `;
 
   const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,14 +79,18 @@ Return ONLY a valid JSON object (no markdown, no extra text) with these exact fi
   );
 
   const geminiData = await geminiRes.json();
-  if (!geminiRes.ok) return NextResponse.json({ error: geminiData?.error?.message ?? "Gemini error" }, { status: 500 });
+  if (!geminiRes.ok) {
+    console.error("Youtube-to-blog Gemini API error:", geminiData);
+    return NextResponse.json({ error: geminiData?.error?.message ?? "Gemini error" }, { status: 500 });
+  }
 
   const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
   try {
     const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
     return NextResponse.json({ post: parsed, transcriptLength: transcript.length });
-  } catch {
+  } catch (e) {
+    console.error("Youtube-to-blog JSON parsing error:", e, "Raw response:", raw);
     return NextResponse.json({ error: "Failed to parse Gemini response", raw }, { status: 500 });
   }
 }

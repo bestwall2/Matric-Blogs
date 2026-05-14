@@ -74,7 +74,7 @@ Return a JSON object with this exact structure:
     const data = parseJsonLoose<Record<string, unknown>>(raw);
     res.json({ success: true, data });
   } catch (e) {
-    req.log.error({ e }, "aiGenerate error");
+    req.log.error({ err: e }, "aiGenerate error details");
     const message = e instanceof Error ? e.message : "Generation failed";
     res.status(500).json({ error: message });
   }
