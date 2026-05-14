@@ -47,7 +47,7 @@ export default function AdminSeo() {
   return (
     <div className="min-h-screen bg-background flex" dir="rtl">
       <AdminSidebar onSignOut={signOut} />
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pt-14 md:pt-0">
         <div className="p-6 max-w-4xl">
           <h1 className="text-2xl font-black text-foreground mb-6">أدوات SEO</h1>
 
