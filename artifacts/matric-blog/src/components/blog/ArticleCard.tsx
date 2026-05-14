@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Clock, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, getReadingTime, cn } from "@/lib/utils";
@@ -44,11 +45,11 @@ export default function ArticleCard({ post, featured, className }: ArticleCardPr
         featured ? "md:w-2/5 h-48 md:h-full" : "h-48"
       )}>
         {post.featured_image ? (
-          <img
+          <Image
             src={post.featured_image}
             alt={title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary">

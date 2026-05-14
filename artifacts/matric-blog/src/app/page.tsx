@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Clock, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -105,11 +106,12 @@ function HeroPost({ post }: { post: any }) {
       className="block max-w-7xl mx-auto px-4 sm:px-6 group"
     >
       <div className="relative overflow-hidden rounded-2xl h-[480px] md:h-[520px] bg-secondary">
-        {post.featured_image ? (
-          <img
+          {post.featured_image ? (
+          <Image
             src={post.featured_image}
             alt={title}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-secondary to-background" />

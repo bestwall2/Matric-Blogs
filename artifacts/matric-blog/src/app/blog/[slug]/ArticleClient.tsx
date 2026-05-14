@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Clock, Eye, Calendar, Share2, Twitter, Facebook, Link as LinkIcon, ChevronUp, ArrowRight } from "lucide-react";
 import { useIncrementPostView } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -79,13 +80,15 @@ export default function ArticleClient({ post, related }: { post: Post; related: 
             </div>
 
             {post.featured_image && (
-              <img src={post.featured_image} alt={title} className="w-full h-64 md:h-80 object-cover rounded-xl mb-8" />
+              <div className="relative w-full h-64 md:h-80 mb-8">
+                <Image src={post.featured_image} alt={title} fill className="object-cover rounded-xl" />
+              </div>
             )}
 
             {post.authors && (
               <div className="flex items-center gap-3 mb-6 p-4 rounded-xl border border-border bg-card/50">
                 {post.authors.avatar ? (
-                  <img src={post.authors.avatar} alt={post.authors.name} className="w-10 h-10 rounded-full object-cover" />
+                  <Image src={post.authors.avatar} alt={post.authors.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold shrink-0">
                     {post.authors.name.charAt(0)}

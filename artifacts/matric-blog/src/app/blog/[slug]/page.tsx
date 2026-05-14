@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const url = `${SITE_URL}/blog/${slug}`;
 
   return {
-    title: post.meta_title || title,
+    title: post.title_ar || post.meta_title || post.title,
     description,
     openGraph: {
       type: "article",
@@ -73,22 +73,34 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
-    headline: title,
-    description,
-    image,
-    author: {
-      "@type": "Person",
-      name: post.authors?.name || "ماتريكبلوغ",
-    },
-    publisher: {
-      "@type": "Organization",
-      name: "ماتريكبلوغ",
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
-    },
-    datePublished: post.published_at || post.created_at,
-    dateModified: post.updated_at || post.created_at,
-    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    "@graph": [
+      {
+        "@type": "Article",
+        headline: title,
+        description,
+        image,
+        author: {
+          "@type": "Person",
+          name: post.authors?.name || "ماتريكبلوغ",
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "ماتريكبلوغ",
+          logo: { "@type": "ImageObject", url: `${SITE_URL}/logo.png` },
+        },
+        datePublished: post.published_at || post.created_at,
+        dateModified: post.updated_at || post.created_at,
+        mainEntityOfPage: { "@type": "WebPage", "@id": url },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE_URL },
+          { "@type": "ListItem", "position": 2, "name": "المدونة", "item": `${SITE_URL}/blog` },
+          { "@type": "ListItem", "position": 3, "name": title, "item": url },
+        ],
+      },
+    ],
   };
 
   return (
