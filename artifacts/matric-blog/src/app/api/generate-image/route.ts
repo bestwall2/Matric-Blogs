@@ -8,13 +8,13 @@ export async function POST(req: NextRequest) {
   if (!prompt) return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        instances: [{ prompt }],
-        parameters: { sampleCount: 1, aspectRatio: "16:9" },
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
       }),
     }
   );
@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
 
   if (!res.ok) return NextResponse.json({ error: data?.error?.message ?? "Generation failed" }, { status: res.status });
 
-  const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
-  if (!b64) return NextResponse.json({ error: "No image returned" }, { status: 500 });
+  const parts = data?.candidates?.[0]?.content?.parts;
+  const imagePart = parts?.find((p: { inlineData?: { data: string; mimeType: string } }) => p.inlineData);
 
-  return NextResponse.json({ image: `data:image/png;base64,${b64}` });
+  if (!imagePart) return NextResponse.json({ error: "No image returned" }, { status: 500 });
+
+  const { data: b64, mimeType } = imagePart.inlineData;
+  return NextResponse.json({ image: `data:${mimeType};base64,${b64}` });
 }
