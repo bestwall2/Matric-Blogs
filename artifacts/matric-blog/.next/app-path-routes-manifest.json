@@ -13,6 +13,7 @@
   "/admin/posts/page": "/admin/posts",
   "/admin/seo/page": "/admin/seo",
   "/admin/youtube-to-blog/page": "/admin/youtube-to-blog",
+  "/api/audit/route": "/api/audit",
   "/api/generate-image/route": "/api/generate-image",
   "/api/youtube-to-blog/route": "/api/youtube-to-blog",
   "/blog/[slug]/page": "/blog/[slug]",

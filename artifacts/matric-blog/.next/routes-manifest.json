@@ -133,6 +133,12 @@
       "namedRegex": "^/admin/youtube\\-to\\-blog(?:/)?$"
     },
     {
+      "page": "/api/audit",
+      "regex": "^/api/audit(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/audit(?:/)?$"
+    },
+    {
       "page": "/api/generate-image",
       "regex": "^/api/generate\\-image(?:/)?$",
       "routeKeys": {},
