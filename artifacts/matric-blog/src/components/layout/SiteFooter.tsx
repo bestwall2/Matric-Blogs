@@ -18,9 +18,9 @@ export default function SiteFooter() {
               موقعك المتخصص في أخبار كرة القدم والبث المباشر والتقنية. نقدم المحتوى العربي الأصيل لجمهور المغرب والوطن العربي.
             </p>
             <div className="flex items-center gap-3 mt-4">
-              <a href="#" aria-label="Twitter" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="w-4 h-4" /></a>
-              <a href="#" aria-label="Facebook" className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="w-4 h-4" /></a>
-              <a href="#" aria-label="Youtube" className="text-muted-foreground hover:text-primary transition-colors"><Youtube className="w-4 h-4" /></a>
+              <a href="https://twitter.com/MatricBlog" aria-label="Twitter" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="w-4 h-4" /></a>
+              <a href="https://facebook.com/MatricBlog" aria-label="Facebook" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="w-4 h-4" /></a>
+              <a href="https://youtube.com/@MatricBlog" aria-label="Youtube" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors"><Youtube className="w-4 h-4" /></a>
             </div>
           </div>
           <div>

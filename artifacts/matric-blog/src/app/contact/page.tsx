@@ -16,7 +16,7 @@ export default function Contact() {
           {[
             { icon: Mail, title: "البريد الإلكتروني", val: "contact@matricblog.com", href: "mailto:contact@matricblog.com" },
             { icon: Twitter, title: "تويتر / X", val: "@MatricBlog", href: "https://twitter.com/MatricBlog" },
-            { icon: MessageSquare, title: "واتساب للأعمال", val: "+212 6XX XXXXXX", href: "#" },
+            { icon: MessageSquare, title: "واتساب للأعمال", val: "+212 600 000000", href: "https://wa.me/212600000000" },
           ].map(({ icon: Icon, title, val, href }) => (
             <a
               key={title}

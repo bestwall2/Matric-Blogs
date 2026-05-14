@@ -1,148 +1,42 @@
-'use client';
-
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal } from "lucide-react";
-import { useListPosts, useListCategories, getListPostsQueryKey } from "@workspace/api-client-react";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import type { Metadata } from "next";
+import { Suspense } from "react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import ArticleCard from "@/components/blog/ArticleCard";
-import Pagination from "@/components/blog/Pagination";
-import { cn } from "@/lib/utils";
+import BlogContent from "./BlogContent";
 
-const PAGE_SIZE = 12;
+export const metadata: Metadata = {
+  title: "المدونة — ماتريكبلوغ",
+  description: "اكتشف أحدث مقالات كرة القدم والتقنية والبث المباشر باللغة العربية. محتوى متخصص لجمهور المغرب والوطن العربي.",
+  openGraph: { title: "المدونة — ماتريكبلوغ", description: "مقالات متخصصة في كرة القدم والتقنية والبث المباشر.", type: "website" },
+};
 
-function BlogContent() {
-  const searchParams = useSearchParams();
-  const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
-  const [sort, setSort] = useState<"latest" | "views">(
-    (searchParams.get("sort") as "latest" | "views") || "latest"
-  );
-  const [catSlug, setCatSlug] = useState<string | undefined>(searchParams.get("category") || undefined);
-  const [localSearch, setLocalSearch] = useState("");
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://matric-blogs-26.vercel.app";
 
-  const { data: listData, isLoading } = useListPosts(
-    { page, pageSize: PAGE_SIZE, sort, ...(catSlug ? { categorySlug: catSlug } : {}) },
-    { query: { queryKey: getListPostsQueryKey({ page, pageSize: PAGE_SIZE, sort, categorySlug: catSlug }) } }
-  );
-  const { data: categories } = useListCategories();
-
-  const posts = listData?.posts ?? [];
-  const total = listData?.total ?? 0;
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  const filtered = localSearch
-    ? posts.filter(
-        (p) =>
-          (p.title_ar || p.title).toLowerCase().includes(localSearch.toLowerCase()) ||
-          (p.excerpt || "").toLowerCase().includes(localSearch.toLowerCase())
-      )
-    : posts;
-
-  useEffect(() => { setPage(1); }, [sort, catSlug]);
-
-  return (
-    <>
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-foreground mb-1">المدونة</h1>
-        <p className="text-muted-foreground text-sm">
-          {total > 0 ? `${total.toLocaleString("ar")} مقال` : "مقالاتنا المتميزة"}
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-4 mb-8">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="ابحث في المقالات..."
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            className="pr-10 bg-secondary border-border text-right"
-            data-testid="input-search"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <SlidersHorizontal className="w-3 h-3" /> ترتيب:
-          </span>
-          {(["latest", "views"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSort(s)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                sort === s ? "bg-primary text-white" : "bg-secondary text-muted-foreground hover:text-foreground"
-              )}
-              data-testid={`sort-${s}`}
-            >
-              {s === "latest" ? "الأحدث" : "الأكثر قراءة"}
-            </button>
-          ))}
-
-          <span className="w-px h-4 bg-border mx-1" />
-
-          <button
-            onClick={() => setCatSlug(undefined)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-              !catSlug ? "bg-primary text-white" : "bg-secondary text-muted-foreground hover:text-foreground"
-            )}
-            data-testid="filter-all"
-          >
-            الكل
-          </button>
-          {(categories ?? []).map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setCatSlug(cat.slug === catSlug ? undefined : cat.slug)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                catSlug === cat.slug ? "bg-primary text-white" : "bg-secondary text-muted-foreground hover:text-foreground"
-              )}
-              data-testid={`filter-cat-${cat.slug}`}
-            >
-              {cat.name_ar || cat.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-64 rounded-xl" />
-          ))}
-        </div>
-      ) : filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((post) => (
-            <ArticleCard key={post.id} post={post} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg font-semibold mb-2">لا توجد نتائج</p>
-          <p className="text-sm">جرب تغيير الفلاتر أو كلمة البحث</p>
-        </div>
-      )}
-
-      {!localSearch && (
-        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      )}
-    </>
-  );
+async function getInitialPosts() {
+  try {
+    const res = await fetch(`${SITE_URL}/api/posts?pageSize=12&page=1`, { next: { revalidate: 300 } });
+    if (!res.ok) return { posts: [], total: 0 };
+    return res.json();
+  } catch { return { posts: [], total: 0 }; }
 }
 
-export default function Blog() {
+async function getInitialCategories() {
+  try {
+    const res = await fetch(`${SITE_URL}/api/categories`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    return res.json();
+  } catch { return []; }
+}
+
+export default async function Blog() {
+  const [initialData, initialCategories] = await Promise.all([getInitialPosts(), getInitialCategories()]);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16">
-        <Suspense fallback={<div>Loading...</div>}>
-          <BlogContent />
+        <Suspense fallback={<div className="text-center py-20 text-muted-foreground">جاري التحميل...</div>}>
+          <BlogContent initialData={initialData} initialCategories={initialCategories} />
         </Suspense>
       </main>
       <SiteFooter />
