@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useAiImproveContent } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,310 @@ import { computeSeoScore } from "@/lib/seo-score";
 import { toast } from "sonner";
 import {
   Wand2, CheckCircle, XCircle, ShieldCheck, ScanLine,
-  Loader2, Radio, RefreshCw, Bug, AlertTriangle, CheckCircle2, FileText
+  Loader2, Radio, RefreshCw, Bug, AlertTriangle, CheckCircle2, FileText,
+  Copy, ChevronLeft, ChevronRight, Check, ArrowLeft, ArrowRight,
+  ExternalLink, Code2, FileCode, Wrench
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ---- FIX DEFINITIONS ----
+interface FixStep {
+  id: string;
+  label: string;
+  priority: "critical" | "high" | "medium" | "low";
+  description: string;
+  detail: string;
+  autoFixable: boolean;
+  filePath?: string;
+  code?: string;
+  instructions: string[];
+  category: string;
+}
+
+function getFixesForResult(result: any): FixStep[] {
+  const r = result as any;
+  const fixes: FixStep[] = [];
+
+  // 1. Sitemap double slashes
+  const sitemapIssues = r.sitemap?.issues || [];
+  if (sitemapIssues.some((i: any) => i.message?.includes("Double slash"))) {
+    fixes.push({
+      id: "sitemap-slash",
+      label: "إصلاح الروابط المكررة في Sitemap",
+      priority: "critical",
+      description: "Sitemap يحتوي على شرطتين مائلتين (//) في الروابط",
+      detail: "المشكلة: متغير SITE_URL يحتوي على / في النهاية. الحل: إزالة الشرطة المائلة من المتغير أو تعديل الكود.",
+      autoFixable: false,
+      filePath: "artifacts/matric-blog/src/app/sitemap.ts",
+      code: `const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://matric-blogs-26.vercel.app").replace(/\\/+$/, "");`,
+      instructions: [
+        "افتح ملف sitemap.ts",
+        "عدّل السطر الذي يعرّف SITE_URL بإضافة .replace(/\\/+$/, '')",
+        "أو اذهب إلى Vercel Dashboard → Environment Variables وتأكد أن NEXT_PUBLIC_SITE_URL لا يحتوي على / في النهاية",
+        "أعد النشر بعد التعديل"
+      ],
+      category: "seo"
+    });
+  }
+
+  // 2. Missing Organization/Website schema
+  const hasOrgSchema = r.pages?.some((p: any) => p.schemaTypes?.includes("Organization") || p.schemaTypes?.includes("WebSite"));
+  if (!hasOrgSchema) {
+    fixes.push({
+      id: "org-schema",
+      label: "إضافة Organization + WebSite Schema",
+      priority: "high",
+      description: "الصفحة الرئيسية لا تحتوي على schema منظمة أو موقع",
+      detail: "مطلوب لـ Google Knowledge Panel ولتحسين E-E-A-T",
+      autoFixable: false,
+      filePath: "artifacts/matric-blog/src/app/layout.tsx",
+      code: `// أضف هذا الكود في الميتاداتا في layout.tsx
+export const metadata: Metadata = {
+  // ... الميتاداتا الموجودة
+  other: {
+    'application/ld+json': JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ماتريكبلوغ",
+      "url": "https://matric-blogs-26.vercel.app",
+      "logo": "https://matric-blogs-26.vercel.app/logo.png",
+      "sameAs": [
+        "https://twitter.com/MatricBlog"
+      ]
+    })
+  }
+};`,
+      instructions: [
+        "افتح ملف src/app/layout.tsx",
+        "أضف الكود أعلاه إلى كائن metadata",
+        "أو أضف <script> tag في RootLayout مباشرة"
+      ],
+      category: "schema"
+    });
+  }
+
+  // 3. Missing breadcrumb schema
+  const hasBreadcrumb = r.pages?.some((p: any) => p.schemaTypes?.includes("BreadcrumbList"));
+  if (!hasBreadcrumb) {
+    fixes.push({
+      id: "breadcrumb-schema",
+      label: "إضافة BreadcrumbList Schema",
+      priority: "medium",
+      description: "لا يوجد Breadcrumb structured data في أي صفحة",
+      detail: "يساعد Google في فهم هيكل الموقع ويحسن ظهور搜索结果",
+      autoFixable: false,
+      filePath: "artifacts/matric-blog/src/app/blog/[slug]/page.tsx",
+      code: `// أضف هذا مع JSON-LD الموجود في صفحة المقال
+const breadcrumbLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE_URL },
+    { "@type": "ListItem", "position": 2, "name": "المدونة", "item": \`\${SITE_URL}/blog\` },
+    { "@type": "ListItem", "position": 3, "name": title, "item": url }
+  ]
+};`,
+      instructions: [
+        "افتح ملف src/app/blog/[slug]/page.tsx",
+        "أضف breadcrumbLd قبل jsonLd الحالي",
+        "أضف <script> tag ثانٍ في JSX"
+      ],
+      category: "schema"
+    });
+  }
+
+  // 4. Missing meta descriptions for static pages
+  const aboutPage = r.pages?.find((p: any) => p.url?.includes("/about"));
+  if (aboutPage && (!aboutPage.metaDescription || aboutPage.metaDescription?.length < 30)) {
+    fixes.push({
+      id: "meta-about",
+      label: "إضافة Meta Description لصفحة من نحن",
+      priority: "high",
+      description: "صفحة About تفتقر إلى وصف meta مناسب",
+      detail: "الوصف الحالي غير كافٍ أو مفقود",
+      autoFixable: false,
+      filePath: "artifacts/matric-blog/src/app/about/page.tsx",
+      code: `export const metadata: Metadata = {
+  title: "من نحن — ماتريكبلوغ",
+  description: "ماتريكبلوغ — موقعك الرائد في أخبار كرة القدم والبث المباشر والمحتوى التقني باللغة العربية. نقدم محتوى عربي أصيل لجمهور المغرب والوطن العربي.",
+  openGraph: {
+    title: "من نحن — ماتريكبلوغ",
+    description: "ماتريكبلوغ — موقعك الرائد في أخبار كرة القدم والبث المباشر والمحتوى التقني.",
+    type: "website",
+  },
+};`,
+      instructions: ["افتح ملف about/page.tsx", "أضف export const metadata مع title و description و openGraph"],
+      category: "meta"
+    });
+  }
+
+  const contactPage = r.pages?.find((p: any) => p.url?.includes("/contact"));
+  if (contactPage && (!contactPage.metaDescription || contactPage.metaDescription?.length < 30)) {
+    fixes.push({
+      id: "meta-contact",
+      label: "إضافة Meta Description لصفحة تواصل معنا",
+      priority: "high",
+      description: "صفحة Contact تفتقر إلى وصف meta مناسب",
+      detail: "الوصف الحالي غير كافٍ أو مفقود",
+      autoFixable: false,
+      filePath: "artifacts/matric-blog/src/app/contact/page.tsx",
+      code: `export const metadata: Metadata = {
+  title: "تواصل معنا — ماتريكبلوغ",
+  description: "تواصل مع فريق ماتريكبلوغ عبر البريد الإلكتروني أو تويتر. يسعدنا الاستماع إلى آرائك واقتراحاتك.",
+  openGraph: {
+    title: "تواصل معنا — ماتريكبلوغ",
+    description: "تواصل مع فريق ماتريكبلوغ.",
+    type: "website",
+  },
+};`,
+      instructions: ["افتح ملف contact/page.tsx", "أضف export const metadata مع title و description و openGraph"],
+      category: "meta"
+    });
+  }
+
+  // 5. AI content detection
+  if (r.content?.aiProbability > 50) {
+    fixes.push({
+      id: "ai-content",
+      label: "تحسين المحتوى لخفض نسبة اكتشاف AI",
+      priority: "critical",
+      description: `نسبة اكتشاف AI: ${r.content.aiProbability}%. المحتوى يبدو مولّداً بالذكاء الاصطناعي`,
+      detail: "الإشارات: " + (r.content?.aiSignals?.slice(0, 3).join("، ") || "لا توجد إشارات مفصلة"),
+      autoFixable: false,
+      filePath: "كتيب التحسين",
+      code: `// لكل مقالة:
+// 1. أضف تجربة شخصية: "في تجربتي..." "استخدمت هذا الأداة لمدة أسبوع..."
+// 2. أضف أرقاماً حقيقية: "حصلت على 1500 مشاهدة في اليوم الأول"
+// 3. استخدم لغة محادثة طبيعية بدلاً من اللغة الرسمية
+// 4. تجنب العبارات: "في عصر السرعة الرقمية" "لا شك أن" "يتجه العالم"
+// 5. أضف صوراً حقيقية (screenshots) من التجربة
+// 6. احذف أقسام الأسئلة الشائعة (FAQ) أو اجعلها طبيعية`,
+      instructions: [
+        "أعد كتابة المقالات الثلاثة الموجودة بأسلوب شخصي",
+        "أضف تجارب حقيقية: ماذا استخدمت؟ كيف كانت النتيجة؟",
+        "أضف لقطات شاشة حقيقية",
+        "احذف العبارات الافتتاحية المكررة",
+        "اجعل كل مقالة فريدة بمعلومات لا توجد في أي مكان آخر",
+        "استهدف 1500+ كلمة لكل مقالة"
+      ],
+      category: "content"
+    });
+  }
+
+  // 6. Custom domain
+  fixes.push({
+    id: "custom-domain",
+    label: "تسجيل نطاق مخصص (Custom Domain)",
+    priority: "critical",
+    description: "الموقع يستخدم نطاق vercel.app المجاني",
+    detail: "Google AdSense يرفض المواقع ذات النطاقات المجانية. هذا أحد أهم أسباب الرفض.",
+    autoFixable: false,
+    filePath: "Vercel Dashboard → Domains",
+    code: `// الخطوات:
+// 1. اشترِ نطاقاً من عندك (مثلاً matricblog.com من Namecheap, GoDaddy, Hostinger)
+// 2. اذهب إلى Vercel Dashboard → Project → Settings → Domains
+// 3. أضف النطاق الجديد
+// 4. حدّث DNS (أضف CNAME إلى Vercel)
+// 5. انتظر 5-10 دقائق للتفعيل
+// 6. حدّث NEXT_PUBLIC_SITE_URL في Environment Variables`,
+    instructions: [
+      "اشترِ نطاقاً مثل matricblog.com أو matric-blog.com",
+      "أضف النطاق في Vercel Dashboard",
+      "حدّث DNS settings",
+      "حدّث متغير NEXT_PUBLIC_SITE_URL"
+    ],
+    category: "infrastructure"
+  });
+
+  // 7. Broken blog page
+  const blogPage = r.pages?.find((p: any) => p.url?.includes("/blog") && !p.url?.includes("/blog/"));
+  if (blogPage && blogPage.wordCount < 50) {
+    fixes.push({
+      id: "blog-ssr",
+      label: "إصلاح صفحة المدونة (Blog Listing)",
+      priority: "critical",
+      description: "صفحة /blog لا تظهر المحتوى — تعرض 'جاري التحميل...'",
+      detail: "فشل الطلب من السيرفر (SSR) عند تحميل الصفحة",
+      autoFixable: true,
+      filePath: "artifacts/matric-blog/src/app/blog/page.tsx",
+      code: `// المشكلة: SITE_URL يستخدم رابط خارجي وقد يفشل أثناء SSR
+// الحل: استخدم الرابط النسبي أو استعمل VERCEL_URL
+const SITE_URL = process.env.VERCEL_URL 
+  ? \`https://\${process.env.VERCEL_URL}\`
+  : process.env.NEXT_PUBLIC_SITE_URL || "https://matric-blogs-26.vercel.app";`,
+      instructions: [
+        "افتح ملف src/app/blog/page.tsx",
+        "عدّل تعريف SITE_URL كما هو موضح",
+        "أعد النشر"
+      ],
+      category: "bug"
+    });
+  }
+
+  // 8. next/image
+  if (!r.performance?.hasNextImage && (r.performance?.imageCount || 0) > 0) {
+    fixes.push({
+      id: "next-image",
+      label: "استخدام next/image بدلاً من <img>",
+      priority: "high",
+      description: `${r.performance?.imageCount || 0} صورة تستخدم <img> بدلاً من next/image`,
+      detail: "next/image يوفر تحويل WebP تلقائي، تحجيم، Lazy loading",
+      autoFixable: false,
+      filePath: "مثال للمقالات",
+      code: `// قبل (خطأ):
+<img src={post.featured_image} alt={title} className="..." />
+
+// بعد (صحيح):
+import Image from "next/image";
+<Image 
+  src={post.featured_image} 
+  alt={title}
+  width={1200}
+  height={630}
+  className="..."
+/>`,
+      instructions: [
+        "افتح كل ملف يستخدم <img>",
+        "استبدله بـ <Image from next/image>",
+        "أضف width و height لمنع layout shift",
+        "أعد النشر"
+      ],
+      category: "performance"
+    });
+  }
+
+  // 9. English title on Arabic article
+  const articlesWithEnTitle = r.pages?.filter((p: any) => p.url?.includes("/blog/") && p.title && !/[\u0600-\u06FF]/.test(p.title));
+  if (articlesWithEnTitle?.length > 0) {
+    fixes.push({
+      id: "arabic-title",
+      label: "إصلاح عنوان article بالعربية",
+      priority: "critical",
+      description: `المقالات ${articlesWithEnTitle.map((p: any) => p.url?.split("/").pop()).join(", ")} لها عنوان إنجليزي في <title>`,
+      detail: "المحتوى عربي لكن عنوان SEO إنجليزي. يجب أن يكون العنوان بالعربية.",
+      autoFixable: false,
+      filePath: "artifacts/matric-blog/src/app/blog/[slug]/page.tsx",
+      code: `// تأكد من أن دالة generateMetadata تستخدم العنوان العربي:
+export async function generateMetadata({ params }): Promise<Metadata> {
+  const post = await getPost(params.slug);
+  // استخدم Arabic title كمفتاح أساسي:
+  const title = post.meta_title || post.title_ar || post.title;
+  // meta_title يجب أن يكون بالعربية دائماً
+  return { title, ... };
+}`,
+      instructions: [
+        "افتح ملف blog/[slug]/page.tsx",
+        "تأكد من أن post.meta_title يحتوي على عنوان عربي في قاعدة البيانات",
+        "أو عدّل الأولوية لتكون: title_ar → meta_title → title"
+      ],
+      category: "meta"
+    });
+  }
+
+  return fixes;
+}
+
+// ---- COMPONENT ----
 export default function AdminSeo() {
   const { loading: authLoading, signOut } = useAdminAuth();
   const improveContent = useAiImproveContent();
@@ -28,16 +328,37 @@ export default function AdminSeo() {
   const [instruction, setInstruction] = useState("");
   const [improved, setImproved] = useState<{ content: string; seo_notes: string[] } | null>(null);
 
-  // AdSense audit state
   const [activeTab, setActiveTab] = useState<"seo" | "adsense">("seo");
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
+  // Fix wizard state
+  const [wizardMode, setWizardMode] = useState<"scan" | "wizard" | "done">("scan");
+  const [currentStep, setCurrentStep] = useState(0);
+  const [fixedSteps, setFixedSteps] = useState<Set<string>>(new Set());
+  const [skippedSteps, setSkippedSteps] = useState<Set<string>>(new Set());
+
+  // Get fixes list
+  const fixes = useMemo(() => {
+    if (!analysisResult) return [];
+    return getFixesForResult(analysisResult);
+  }, [analysisResult]);
+
+  const currentFix = fixes[currentStep];
+  const totalIssues = fixes.length;
+  const fixedCount = fixedSteps.size;
+  const skippedCount = skippedSteps.size;
+  const remaining = totalIssues - fixedCount - skippedCount;
+
   const runAnalysis = async () => {
     setAnalysisLoading(true);
     setAnalysisError(null);
     setAnalysisResult(null);
+    setWizardMode("scan");
+    setCurrentStep(0);
+    setFixedSteps(new Set());
+    setSkippedSteps(new Set());
     try {
       const siteUrl = window.location.origin;
       const res = await fetch("/api/audit", {
@@ -45,21 +366,52 @@ export default function AdminSeo() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: siteUrl }),
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || `HTTP ${res.status}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || "Analysis failed");
       setAnalysisResult(json.data);
-      toast.success("اكتمل تحليل AdSense");
+      toast.success(`تم العثور على ${json.data.summary?.totalIssues || 0} مشكلة`);
     } catch (err: any) {
       setAnalysisError(err.message || "فشل التحليل");
-      toast.error("فشل تحليل AdSense");
+      toast.error("فشل التحليل");
     } finally {
       setAnalysisLoading(false);
     }
   };
+
+  const markFixed = useCallback((id: string) => {
+    setFixedSteps(prev => new Set(prev).add(id));
+    if (currentStep < fixes.length - 1) {
+      setCurrentStep(s => s + 1);
+    } else if (currentStep >= fixes.length - 1) {
+      setWizardMode("done");
+    }
+  }, [currentStep, fixes.length]);
+
+  const skipStep = useCallback((id: string) => {
+    setSkippedSteps(prev => new Set(prev).add(id));
+    if (currentStep < fixes.length - 1) {
+      setCurrentStep(s => s + 1);
+    } else if (currentStep >= fixes.length - 1) {
+      setWizardMode("done");
+    }
+  }, [currentStep, fixes.length]);
+
+  const goToStep = useCallback((idx: number) => {
+    if (idx >= 0 && idx < fixes.length) setCurrentStep(idx);
+  }, [fixes.length]);
+
+  const startWizard = useCallback(() => {
+    setWizardMode("wizard");
+    setCurrentStep(0);
+  }, []);
+
+  const copyCode = useCallback((code: string) => {
+    navigator.clipboard.writeText(code).then(
+      () => toast.success("تم نسخ الكود!"),
+      () => toast.error("فشل النسخ")
+    );
+  }, []);
 
   if (authLoading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="text-muted-foreground text-sm">جاري التحقق...</div></div>;
 
@@ -80,6 +432,17 @@ export default function AdminSeo() {
     );
   };
 
+  const getPriorityBadge = (p: string) => {
+    const m: Record<string, { label: string; cls: string }> = {
+      critical: { label: "حرج", cls: "bg-red-500/15 text-red-500 border-red-500/20" },
+      high: { label: "عالي", cls: "bg-orange-500/15 text-orange-500 border-orange-500/20" },
+      medium: { label: "متوسط", cls: "bg-yellow-500/15 text-yellow-500 border-yellow-500/20" },
+      low: { label: "منخفض", cls: "bg-green-500/15 text-green-500 border-green-500/20" },
+    };
+    const b = m[p] || m.medium;
+    return <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${b.cls}`}>{b.label}</span>;
+  };
+
   return (
     <div className="min-h-screen bg-background flex" dir="rtl">
       <AdminSidebar onSignOut={signOut} />
@@ -88,28 +451,19 @@ export default function AdminSeo() {
 
           {/* Tabs */}
           <div className="flex items-center gap-1 mb-6 bg-card border border-border rounded-xl p-1 w-fit">
-            <button
-              onClick={() => setActiveTab("seo")}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                activeTab === "seo" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Wand2 className="w-4 h-4" />
-              أدوات SEO
+            <button onClick={() => setActiveTab("seo")}
+              className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                activeTab === "seo" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+              <Wand2 className="w-4 h-4" /> أدوات SEO
             </button>
-            <button
-              onClick={() => setActiveTab("adsense")}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                activeTab === "adsense" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              تحليل AdSense
+            <button onClick={() => setActiveTab("adsense")}
+              className={cn("flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                activeTab === "adsense" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+              <ShieldCheck className="w-4 h-4" /> تحليل AdSense
             </button>
           </div>
 
+          {/* === SEO TAB === */}
           {activeTab === "seo" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
@@ -118,36 +472,35 @@ export default function AdminSeo() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs">عنوان المقال</Label>
-                      <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-secondary border-border text-right text-sm" data-testid="input-seo-title" />
+                      <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-secondary border-border text-right text-sm" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs">الكلمة المفتاحية</Label>
-                      <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} className="bg-secondary border-border text-right text-sm" data-testid="input-seo-keyword" />
+                      <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} className="bg-secondary border-border text-right text-sm" />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs">Meta Title</Label>
-                      <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="bg-secondary border-border text-sm" data-testid="input-meta-title" />
+                      <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="bg-secondary border-border text-sm" />
                       <p className="text-xs text-muted-foreground">{metaTitle.length}/60</p>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs">Meta Description</Label>
-                      <Input value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} className="bg-secondary border-border text-sm" data-testid="input-meta-desc" />
+                      <Input value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} className="bg-secondary border-border text-sm" />
                       <p className="text-xs text-muted-foreground">{metaDesc.length}/160</p>
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">محتوى HTML</Label>
-                    <Textarea value={content} onChange={(e) => setContent(e.target.value)} className="bg-secondary border-border font-mono text-xs min-h-32" dir="ltr" placeholder="<h2>...</h2><p>...</p>" data-testid="textarea-content" />
+                    <Textarea value={content} onChange={(e) => setContent(e.target.value)} className="bg-secondary border-border font-mono text-xs min-h-32" dir="ltr" placeholder="<h2>...</h2><p>...</p>" />
                   </div>
                 </div>
-
                 <div className="rounded-xl border border-border bg-card p-5 space-y-3">
                   <h2 className="font-bold text-foreground text-sm">تحسين بالذكاء الاصطناعي</h2>
                   <div className="space-y-1.5">
                     <Label className="text-xs">تعليمات إضافية</Label>
-                    <Input value={instruction} onChange={(e) => setInstruction(e.target.value)} className="bg-secondary border-border text-right text-sm" placeholder="مثال: ركز على جمهور مغربي" data-testid="input-instruction" />
+                    <Input value={instruction} onChange={(e) => setInstruction(e.target.value)} className="bg-secondary border-border text-right text-sm" placeholder="مثال: ركز على جمهور مغربي" />
                   </div>
-                  <Button onClick={handleImprove} disabled={improveContent.isPending || !content} className="w-full bg-primary hover:bg-primary/90 text-white gap-2" data-testid="button-improve">
+                  <Button onClick={handleImprove} disabled={improveContent.isPending || !content} className="w-full bg-primary hover:bg-primary/90 text-white gap-2">
                     <Wand2 className="w-4 h-4" />
                     {improveContent.isPending ? "جاري التحسين..." : "تحسين المحتوى"}
                   </Button>
@@ -165,7 +518,6 @@ export default function AdminSeo() {
                   )}
                 </div>
               </div>
-
               <div>
                 {score ? (
                   <div className="rounded-xl border border-border bg-card p-5 sticky top-6">
@@ -198,26 +550,29 @@ export default function AdminSeo() {
             </div>
           )}
 
+          {/* === ADSENSE TAB === */}
           {activeTab === "adsense" && (
             <div className="space-y-4">
+
+              {/* Scan Button + Status */}
               <div className="rounded-xl border border-border bg-card p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="font-bold text-foreground text-sm">تحليل AdSense للموقع</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">فحص آلي لاكتشاف مشاكل AdSense و SEO والمحتوى</p>
+                    <h2 className="font-bold text-foreground text-sm">معالج إصلاح AdSense</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">مسح الموقع → إصلاح المشاكل خطوة بخطوة → إعادة المسح</p>
                   </div>
-                  <Button
-                    onClick={runAnalysis}
-                    disabled={analysisLoading}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
-                  >
-                    {analysisLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ScanLine className="w-4 h-4" />
+                  <div className="flex gap-2">
+                    <Button onClick={runAnalysis} disabled={analysisLoading} className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2">
+                      {analysisLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
+                      {analysisLoading ? "جارٍ المسح..." : "مسح الموقع"}
+                    </Button>
+                    {analysisResult && fixes.length > 0 && wizardMode !== "wizard" && (
+                      <Button onClick={startWizard} variant="outline" className="gap-2">
+                        <Wrench className="w-4 h-4" />
+                        ابدأ الإصلاح ({totalIssues})
+                      </Button>
                     )}
-                    {analysisLoading ? "جارٍ التحليل..." : "تحليل الموقع"}
-                  </Button>
+                  </div>
                 </div>
 
                 {analysisLoading && (
@@ -226,7 +581,7 @@ export default function AdminSeo() {
                       <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
                       <span className="text-sm font-medium text-foreground">جارٍ فحص الموقع...</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">يتم مسح 7+ صفحة والتحقق من meta tags, structured data, المحتوى, والسيرفر</p>
+                    <p className="text-xs text-muted-foreground">يتم مسح 7+ صفحات والتحقق من meta tags, structured data, المحتوى, والسيرفر</p>
                     <div className="mt-3 h-1 rounded-full bg-border overflow-hidden">
                       <div className="h-full rounded-full bg-emerald-500 animate-pulse" style={{ width: "60%" }} />
                     </div>
@@ -240,142 +595,206 @@ export default function AdminSeo() {
                       <span className="text-sm font-medium text-red-500">فشل التحليل</span>
                     </div>
                     <p className="text-xs text-muted-foreground">{analysisError}</p>
+                    <Button onClick={runAnalysis} size="sm" variant="outline" className="mt-2 text-xs">إعادة المحاولة</Button>
                   </div>
                 )}
 
-                {analysisResult && (() => {
-                  const r = analysisResult as any;
-                  const sum = r.summary as any;
+                {/* Summary (non-wizard mode) */}
+                {analysisResult && wizardMode === "scan" && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+                      <p className="text-xs text-muted-foreground">الصفحات</p>
+                      <p className="text-xl font-black text-foreground mt-1">{analysisResult.summary?.pagesScanned || 0}</p>
+                    </div>
+                    <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+                      <p className="text-xs text-muted-foreground">المشاكل الكلية</p>
+                      <p className="text-xl font-black text-red-500 mt-1">{totalIssues}</p>
+                    </div>
+                    <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+                      <p className="text-xs text-muted-foreground">تم الإصلاح</p>
+                      <p className="text-xl font-black text-emerald-500 mt-1">{fixedCount}</p>
+                    </div>
+                    <div className="bg-secondary/50 rounded-xl p-4 border border-border">
+                      <p className="text-xs text-muted-foreground">احتمال الموافقة</p>
+                      <p className="text-xl font-black text-foreground mt-1">{analysisResult.summary?.approvalProbability || 0}%</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-                  return (
-                    <div className="space-y-4">
-                      {/* Score cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="bg-secondary/50 rounded-xl p-4 border border-border">
-                          <p className="text-xs text-muted-foreground">الصفحات الممسوحة</p>
-                          <p className="text-xl font-black text-foreground mt-1">{sum.pagesScanned}</p>
-                        </div>
-                        <div className="bg-secondary/50 rounded-xl p-4 border border-border">
-                          <p className="text-xs text-muted-foreground">المشاكل المكتشفة</p>
-                          <p className="text-xl font-black text-red-500 mt-1">{sum.totalIssues}</p>
-                        </div>
-                        <div className="bg-secondary/50 rounded-xl p-4 border border-border">
-                          <p className="text-xs text-muted-foreground">مشاكل حرجة</p>
-                          <p className="text-xl font-black text-rose-500 mt-1">{sum.criticalIssues}</p>
-                        </div>
-                        <div className="bg-secondary/50 rounded-xl p-4 border border-border">
-                          <p className="text-xs text-muted-foreground">احتمال موافقة AdSense</p>
-                          <p className="text-xl font-black text-emerald-500 mt-1">{sum.approvalProbability}%</p>
-                        </div>
+              {/* === FIX WIZARD === */}
+              {analysisResult && wizardMode === "wizard" && fixes.length > 0 && currentFix && (
+                <div className="rounded-xl border border-border bg-card p-5">
+                  {/* Wizard Progress */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Wrench className="w-4 h-4 text-primary" />
                       </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-foreground">معالج الإصلاح</h3>
+                        <p className="text-xs text-muted-foreground">الخطوة {currentStep + 1} من {totalIssues}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="text-emerald-500">{fixedCount} تم</span>
+                      <span>·</span>
+                      <span className="text-amber-500">{skippedCount} تخطي</span>
+                      <span>·</span>
+                      <span className="text-red-500">{remaining} متبقي</span>
+                    </div>
+                  </div>
 
-                      {/* Issues found */}
-                      {sum.totalIssues > 0 && (
-                        <div className="border border-border rounded-xl p-4 bg-card">
-                          <h3 className="font-bold text-sm text-foreground mb-3 flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                            المشاكل المكتشفة
-                          </h3>
-                          <div className="space-y-1 max-h-64 overflow-y-auto">
-                            {(r.pages as any[] || []).flatMap((p: any) => (p.issues || []).filter((i: any) => i.type === "critical")).slice(0, 10).map((issue: any, i: number) => (
-                              <div key={i} className="flex items-start gap-2 py-1.5 border-b border-border/50 last:border-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                                <div>
-                                  <p className="text-xs text-foreground font-medium">{issue.message}</p>
-                                  <p className="text-[10px] text-muted-foreground">{issue.detail}</p>
-                                </div>
-                              </div>
-                            ))}
-                            {(r.content?.issues as any[] || []).filter((i: any) => i.type === "critical").slice(0, 3).map((issue: any, i: number) => (
-                              <div key={`c-${i}`} className="flex items-start gap-2 py-1.5 border-b border-border/50 last:border-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                                <div>
-                                  <p className="text-xs text-foreground font-medium">{issue.message}</p>
-                                  <p className="text-[10px] text-muted-foreground">{issue.suggestion}</p>
-                                </div>
-                              </div>
-                            ))}
-                            {(r.seo?.issues as any[] || []).filter((i: any) => i.type === "critical").slice(0, 3).map((issue: any, i: number) => (
-                              <div key={`s-${i}`} className="flex items-start gap-2 py-1.5 border-b border-border/50 last:border-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                                <div>
-                                  <p className="text-xs text-foreground font-medium">{issue.message}</p>
-                                  <p className="text-[10px] text-muted-foreground">{issue.suggestion}</p>
-                                </div>
-                              </div>
-                            ))}
-                            {(r.trust?.issues as any[] || []).filter((i: any) => i.type === "critical").slice(0, 3).map((issue: any, i: number) => (
-                              <div key={`t-${i}`} className="flex items-start gap-2 py-1.5 border-b border-border/50 last:border-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
-                                <div>
-                                  <p className="text-xs text-foreground font-medium">{issue.message}</p>
-                                  <p className="text-[10px] text-muted-foreground">{issue.suggestion}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                  {/* Progress Bar */}
+                  <div className="h-1.5 rounded-full bg-border overflow-hidden mb-5">
+                    <div className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-primary transition-all duration-500"
+                      style={{ width: `${((fixedCount + skippedCount) / totalIssues) * 100}%` }} />
+                  </div>
 
-                      {/* Quick summary */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="bg-secondary/30 rounded-xl p-3 border border-border">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <FileText className="w-3 h-3 text-blue-400" />
-                            <p className="text-xs text-muted-foreground">المحتوى</p>
-                          </div>
-                          <p className="text-sm font-bold text-foreground">
-                            {r.content?.hasPersonalVoice ? "بصمة بشرية ✓" : "قد يكون مولّداً بالذكاء"}
-                          </p>
-                          {r.content?.aiProbability > 50 && (
-                            <p className="text-[10px] text-red-400 mt-0.5">AI probability: {r.content.aiProbability}%</p>
+                  {/* Issue Steps Navigation */}
+                  <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
+                    {fixes.map((fix, idx) => {
+                      const isDone = fixedSteps.has(fix.id);
+                      const isSkipped = skippedSteps.has(fix.id);
+                      const isActive = idx === currentStep;
+                      return (
+                        <button key={fix.id} onClick={() => goToStep(idx)}
+                          className={cn(
+                            "w-7 h-7 rounded-lg text-[10px] font-bold transition-all shrink-0",
+                            isActive && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                            isDone ? "bg-emerald-500/20 text-emerald-500" :
+                            isSkipped ? "bg-amber-500/20 text-amber-500" :
+                            idx < currentStep ? "bg-muted text-muted-foreground" :
+                            "bg-secondary text-muted-foreground"
+                          )}>
+                          {isDone ? <Check className="w-3 h-3 mx-auto" /> : isSkipped ? <span>—</span> : idx + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Current Fix Details */}
+                  <div className="border border-border rounded-xl p-4 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-sm text-foreground">{currentFix.label}</h4>
+                          {getPriorityBadge(currentFix.priority)}
+                          {currentFix.autoFixable && (
+                            <span className="text-[10px] bg-blue-500/15 text-blue-500 px-1.5 py-0.5 rounded-full font-semibold">Auto-fix متاح</span>
                           )}
                         </div>
-                        <div className="bg-secondary/30 rounded-xl p-3 border border-border">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                            <p className="text-xs text-muted-foreground">SEO</p>
-                          </div>
-                          <p className="text-sm font-bold text-foreground">
-                            {r.seo?.sitemapScore > 50 ? "Sitemap صحيح ✓" : "Sitemap به مشاكل"}
-                          </p>
-                        </div>
-                        <div className="bg-secondary/30 rounded-xl p-3 border border-border">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <CheckCircle2 className="w-3 h-3 text-violet-400" />
-                            <p className="text-xs text-muted-foreground">الثقة</p>
-                          </div>
-                          <p className="text-sm font-bold text-foreground">
-                            {r.trust?.hasPrivacyPolicy ? "سياسة خصوصية ✓" : "سياسة خصوصية مفقودة"}
-                          </p>
-                        </div>
-                        <div className="bg-secondary/30 rounded-xl p-3 border border-border">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Radio className="w-3 h-3 text-amber-400" />
-                            <p className="text-xs text-muted-foreground">الأداء</p>
-                          </div>
-                          <p className="text-sm font-bold text-foreground">
-                            {r.performance?.hasNextImage ? "صور محسّنة ✓" : "استخدم next/image"}
-                          </p>
-                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{currentFix.description}</p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">{currentFix.detail}</p>
                       </div>
+                    </div>
 
-                      <div className="text-center">
-                        <Button
-                          onClick={runAnalysis}
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 text-xs"
-                          disabled={analysisLoading}
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          تحديث التحليل
+                    {/* File Path */}
+                    {currentFix.filePath && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+                        <FileCode className="w-3 h-3" />
+                        <span>{currentFix.filePath}</span>
+                      </div>
+                    )}
+
+                    {/* Code Block */}
+                    {currentFix.code && (
+                      <div className="relative">
+                        <div className="flex items-center justify-between bg-muted rounded-t-lg px-3 py-1.5 border border-border">
+                          <div className="flex items-center gap-1.5">
+                            <Code2 className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground font-mono">الكود المطلوب</span>
+                          </div>
+                          <button onClick={() => copyCode(currentFix.code!)}
+                            className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors">
+                            <Copy className="w-3 h-3" /> نسخ
+                          </button>
+                        </div>
+                        <pre className="bg-muted/50 border border-t-0 border-border rounded-b-lg p-3 text-xs font-mono text-foreground whitespace-pre-wrap overflow-x-auto max-h-60 overflow-y-auto" dir="ltr">{currentFix.code}</pre>
+                      </div>
+                    )}
+
+                    {/* Instructions */}
+                    {currentFix.instructions.length > 0 && (
+                      <div>
+                        <p className="text-xs font-bold text-foreground mb-2">خطوات التطبيق:</p>
+                        <ol className="space-y-1.5">
+                          {currentFix.instructions.map((inst, i) => (
+                            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                              <span className="w-4 h-4 rounded-full bg-secondary flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                              {inst}
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-border">
+                      <Button onClick={() => markFixed(currentFix.id)} size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5">
+                        <Check className="w-3.5 h-3.5" /> تم الإصلاح
+                      </Button>
+                      <Button onClick={() => skipStep(currentFix.id)} size="sm" variant="outline" className="gap-1">
+                        تخطي
+                      </Button>
+                      <div className="flex-1" />
+                      <div className="flex gap-1">
+                        <Button onClick={() => goToStep(currentStep - 1)} disabled={currentStep === 0} size="sm" variant="ghost" className="gap-1 text-xs">
+                          <ChevronRight className="w-3 h-3" /> السابق
+                        </Button>
+                        <Button onClick={() => goToStep(currentStep + 1)} disabled={currentStep >= fixes.length - 1} size="sm" variant="ghost" className="gap-1 text-xs">
+                          التالي <ChevronLeft className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>
-                  );
-                })()}
-              </div>
+                  </div>
+                </div>
+              )}
+
+              {/* === ALL DONE === */}
+              {analysisResult && wizardMode === "done" && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-8 text-center">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  </div>
+                  <h3 className="text-lg font-black text-foreground mb-1">تمت معالجة جميع المشاكل!</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {fixedCount} مشكلة تم إصلاحها{fixedCount > 0 && ", "}{skippedCount > 0 && `${skippedCount} تم تخطيها`}
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-6">
+                    أعد مسح الموقع للتأكد من حل جميع المشاكل
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <Button onClick={runAnalysis} className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      إعادة المسح
+                    </Button>
+                    <Button onClick={() => setWizardMode("scan")} variant="outline">
+                      عرض النتائج
+                    </Button>
+                    <Button onClick={startWizard} variant="ghost" className="gap-1">
+                      <ArrowRight className="w-3 h-3" />
+                      مراجعة المشاكل المتبقية
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* No issues found */}
+              {analysisResult && fixes.length === 0 && wizardMode === "scan" && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-8 text-center">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+                  <h3 className="text-lg font-black text-foreground mb-1">لا توجد مشاكل!</h3>
+                  <p className="text-sm text-muted-foreground mb-4">الموقع يبدو جاهزاً لطلب AdSense</p>
+                  <Button onClick={runAnalysis} variant="outline" size="sm" className="gap-1 text-xs">
+                    <RefreshCw className="w-3 h-3" /> إعادة المسح
+                  </Button>
+                </div>
+              )}
+
             </div>
           )}
 
