@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import AdminSidebar from "@/components/admin/AdminSidebar";
-import type { AuditAnalysisResult } from "@/lib/audit/types";
 import {
   ChevronDown, ChevronUp, CheckCircle2, Circle, AlertCircle, AlertTriangle,
   Download, Lightbulb, ClipboardList, TrendingUp, FileSearch, UserCheck,
@@ -250,7 +249,7 @@ export default function AdminAuditPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // AI Analysis state
-  const [analysisResult, setAnalysisResult] = useState<AuditAnalysisResult | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState("");
@@ -277,7 +276,7 @@ export default function AdminAuditPage() {
       setAnalysisProgress("");
 
       // Auto-populate checklist items based on results
-      const data: AuditAnalysisResult = json.data;
+      const data = json.data;
       const updates: Record<string, ItemStatus> = {};
 
       // Mark items as done based on analysis
@@ -291,8 +290,8 @@ export default function AdminAuditPage() {
       if (data.content.aiProbability < 50) updates["adsense-3"] = "in_progress";
       if (data.content.hasPersonalVoice) updates["ai-4"] = "done";
       if (data.content.hasDataOrStats) updates["ai-6"] = "in_progress";
-      if (data.pages.some(p => p.schemaTypes.includes("BreadcrumbList"))) updates["seo-3"] = "done";
-      if (data.pages.some(p => p.schemaTypes.includes("Organization") || p.schemaTypes.includes("WebSite"))) updates["seo-4"] = "done";
+      if ((data.pages as any[]).some((p: any) => p.schemaTypes?.includes("BreadcrumbList"))) updates["seo-3"] = "done";
+      if ((data.pages as any[]).some((p: any) => p.schemaTypes?.includes("Organization") || p.schemaTypes?.includes("WebSite"))) updates["seo-4"] = "done";
       if (data.performance.hasNextImage) updates["perf-1"] = "done";
 
       setSections(prev => prev.map(s => ({
@@ -600,7 +599,10 @@ export default function AdminAuditPage() {
             </div>
           )}
 
-          {analysisResult && (
+          {analysisResult && (() => {
+            const r = analysisResult as any;
+            const sum = r.summary as any;
+            return (
             <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03] p-4 md:p-5 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -617,29 +619,28 @@ export default function AdminAuditPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
                 <div className="bg-white/[0.03] rounded-xl p-3">
                   <p className="text-[10px] text-white/30">الصفحات الممسوحة</p>
-                  <p className="text-lg font-black text-white">{analysisResult.summary.pagesScanned}</p>
+                  <p className="text-lg font-black text-white">{sum.pagesScanned}</p>
                 </div>
                 <div className="bg-white/[0.03] rounded-xl p-3">
                   <p className="text-[10px] text-white/30">المشاكل المكتشفة</p>
-                  <p className="text-lg font-black text-red-400">{analysisResult.summary.totalIssues}</p>
+                  <p className="text-lg font-black text-red-400">{sum.totalIssues}</p>
                 </div>
                 <div className="bg-white/[0.03] rounded-xl p-3">
                   <p className="text-[10px] text-white/30">مشاكل حرجة</p>
-                  <p className="text-lg font-black text-rose-400">{analysisResult.summary.criticalIssues}</p>
+                  <p className="text-lg font-black text-rose-400">{sum.criticalIssues}</p>
                 </div>
                 <div className="bg-white/[0.03] rounded-xl p-3">
                   <p className="text-[10px] text-white/30">احتمال الموافقة</p>
-                  <p className="text-lg font-black text-emerald-400">{analysisResult.summary.approvalProbability}%</p>
+                  <p className="text-lg font-black text-emerald-400">{sum.approvalProbability}%</p>
                 </div>
               </div>
 
-              {/* Preview of found issues */}
-              {analysisResult.summary.totalIssues > 0 && (
+              {sum.totalIssues > 0 && (
                 <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {analysisResult.summary.criticalIssues > 0 && (
+                  {sum.criticalIssues > 0 && (
                     <div className="mb-1">
-                      <p className="text-[10px] text-red-400 font-semibold mb-1">🔴 حرجة ({analysisResult.summary.criticalIssues})</p>
-                      {analysisResult.pages.flatMap(p => p.issues.filter(i => i.type === "critical")).slice(0, 5).map((issue, i) => (
+                      <p className="text-[10px] text-red-400 font-semibold mb-1">🔴 حرجة ({sum.criticalIssues})</p>
+                      {(r.pages as any[] || []).flatMap((p: any) => (p.issues || []).filter((i: any) => i.type === "critical")).slice(0, 5).map((issue: any, i: number) => (
                         <div key={i} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
                           <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
                           <span>{issue.message}</span>
@@ -647,19 +648,19 @@ export default function AdminAuditPage() {
                       ))}
                     </div>
                   )}
-                  {analysisResult.content.issues.filter(i => i.type === "critical").slice(0, 3).map((issue, i) => (
+                  {(r.content?.issues as any[] || []).filter((i: any) => i.type === "critical").slice(0, 3).map((issue: any, i: number) => (
                     <div key={`c-${i}`} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
                       <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
                       <span>{issue.message}</span>
                     </div>
                   ))}
-                  {analysisResult.seo.issues.filter(i => i.type === "critical").slice(0, 3).map((issue, i) => (
+                  {(r.seo?.issues as any[] || []).filter((i: any) => i.type === "critical").slice(0, 3).map((issue: any, i: number) => (
                     <div key={`s-${i}`} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
                       <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
                       <span>{issue.message}</span>
                     </div>
                   ))}
-                  {analysisResult.trust.issues.filter(i => i.type === "critical").slice(0, 3).map((issue, i) => (
+                  {(r.trust?.issues as any[] || []).filter((i: any) => i.type === "critical").slice(0, 3).map((issue: any, i: number) => (
                     <div key={`t-${i}`} className="flex items-start gap-1.5 text-[11px] text-white/60 py-0.5">
                       <div className="w-1 h-1 rounded-full bg-red-400 mt-1 shrink-0" />
                       <span>{issue.message}</span>
@@ -668,7 +669,8 @@ export default function AdminAuditPage() {
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
