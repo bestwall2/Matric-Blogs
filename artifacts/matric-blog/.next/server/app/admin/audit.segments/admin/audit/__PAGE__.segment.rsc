@@ -1,9 +1,6 @@
 1:"$Sreact.fragment"
-2:I[57942,["/_next/static/chunks/0_sk6e71hyc7r.js","/_next/static/chunks/0njhp-78unamc.js","/_next/static/chunks/0sret_o.fjo8a.js","/_next/static/chunks/16zwa~wh6dipy.js","/_next/static/chunks/0prvc154otwap.js","/_next/static/chunks/0fw~8k61e2vka.js"],"ClientPageRoot"]
-3:I[71255,["/_next/static/chunks/0_sk6e71hyc7r.js","/_next/static/chunks/0njhp-78unamc.js","/_next/static/chunks/0sret_o.fjo8a.js","/_next/static/chunks/16zwa~wh6dipy.js","/_next/static/chunks/0prvc154otwap.js","/_next/static/chunks/0fw~8k61e2vka.js","/_next/static/chunks/03fsa.n-4w8z7.js","/_next/static/chunks/0d39dtyld55~m.js"],"default"]
-6:I[63881,["/_next/static/chunks/0_sk6e71hyc7r.js","/_next/static/chunks/0njhp-78unamc.js","/_next/static/chunks/0sret_o.fjo8a.js","/_next/static/chunks/16zwa~wh6dipy.js","/_next/static/chunks/0prvc154otwap.js","/_next/static/chunks/0fw~8k61e2vka.js"],"OutletBoundary"]
-7:"$Sreact.suspense"
-0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/_next/static/chunks/03fsa.n-4w8z7.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/0d39dtyld55~m.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"VP0y7zLc2FiOPZXIVrEF9"}
-4:{}
-5:"$0:rsc:props:children:0:props:serverProvidedParams:params"
-8:null
+3:I[63881,["/_next/static/chunks/0_sk6e71hyc7r.js","/_next/static/chunks/0njhp-78unamc.js","/_next/static/chunks/0sret_o.fjo8a.js","/_next/static/chunks/16zwa~wh6dipy.js","/_next/static/chunks/0prvc154otwap.js","/_next/static/chunks/0fw~8k61e2vka.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+0:{"rsc":["$","$1","c",{"children":["$L2",null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"VurNfoM01WWFsgieAgcc1"}
+5:null
+2:E{"digest":"NEXT_REDIRECT;replace;/admin/seo;307;"}

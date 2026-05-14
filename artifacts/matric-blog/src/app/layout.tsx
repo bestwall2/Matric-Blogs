@@ -43,6 +43,33 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="dark">
       <body className={`${cairo.variable} font-sans antialiased`}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Organization",
+                "name": "ماتريكبلوغ",
+                "url": "https://matric-blogs-26.vercel.app",
+                "logo": "https://matric-blogs-26.vercel.app/logo.png",
+                "sameAs": [
+                  "https://twitter.com/MatricBlog"
+                ]
+              },
+              {
+                "@type": "WebSite",
+                "name": "ماتريكبلوغ",
+                "url": "https://matric-blogs-26.vercel.app",
+                "description": "موقعك المتخصص في أخبار كرة القدم والبث المباشر والتقنية باللغة العربية.",
+                "inLanguage": "ar",
+                "publisher": {
+                  "@type": "Organization",
+                  "name": "ماتريكبلوغ"
+                }
+              }
+            ]
+          })
+        }} />
         <Providers>{children}</Providers>
       </body>
     </html>
