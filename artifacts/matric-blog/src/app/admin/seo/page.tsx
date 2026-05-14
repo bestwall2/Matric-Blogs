@@ -295,18 +295,15 @@ import Image from "next/image";
       detail: "المحتوى عربي لكن عنوان SEO إنجليزي. يجب أن يكون العنوان بالعربية.",
       autoFixable: false,
       filePath: "artifacts/matric-blog/src/app/blog/[slug]/page.tsx",
-      code: `// تأكد من أن دالة generateMetadata تستخدم العنوان العربي:
-export async function generateMetadata({ params }): Promise<Metadata> {
-  const post = await getPost(params.slug);
-  // استخدم Arabic title كمفتاح أساسي:
-  const title = post.meta_title || post.title_ar || post.title;
-  // meta_title يجب أن يكون بالعربية دائماً
-  return { title, ... };
-}`,
+      code: `// الأولوية: Arabic title → meta_title → English title
+const title = post.title_ar || post.meta_title || post.title;
+// بهذا الترتيب، Arabic title هو الأهم دائماً في <title>
+return { title, ... };`,
       instructions: [
         "افتح ملف blog/[slug]/page.tsx",
-        "تأكد من أن post.meta_title يحتوي على عنوان عربي في قاعدة البيانات",
-        "أو عدّل الأولوية لتكون: title_ar → meta_title → title"
+        "في generateMetadata، غير السطر title: post.meta_title || title",
+        "استبدله بـ: title: post.title_ar || post.meta_title || post.title",
+        "بهذا الترتيب: Arabic title هو الأساسي، ثم meta_title، ثم English title كخيار أخير"
       ],
       category: "meta"
     });
@@ -624,35 +621,36 @@ export default function AdminSeo() {
 
               {/* === FIX WIZARD === */}
               {analysisResult && wizardMode === "wizard" && fixes.length > 0 && currentFix && (
-                <div className="rounded-xl border border-border bg-card p-5">
+                <div className="rounded-xl border border-border bg-card p-3 md:p-5">
                   {/* Wizard Progress */}
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                         <Wrench className="w-4 h-4 text-primary" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="font-bold text-sm text-foreground">معالج الإصلاح</h3>
                         <p className="text-xs text-muted-foreground">الخطوة {currentStep + 1} من {totalIssues}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="text-emerald-500">{fixedCount} تم</span>
-                      <span>·</span>
-                      <span className="text-amber-500">{skippedCount} تخطي</span>
-                      <span>·</span>
-                      <span className="text-red-500">{remaining} متبقي</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 rounded-xl px-3 py-1.5 w-fit">
+                      <span className="text-emerald-500 whitespace-nowrap">{fixedCount} تم</span>
+                      <span className="text-muted-foreground/30">·</span>
+                      <span className="text-amber-500 whitespace-nowrap">{skippedCount} تخطي</span>
+                      <span className="text-muted-foreground/30">·</span>
+                      <span className="text-red-500 whitespace-nowrap">{remaining} متبقي</span>
                     </div>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="h-1.5 rounded-full bg-border overflow-hidden mb-5">
+                  <div className="h-1.5 rounded-full bg-border overflow-hidden mb-4">
                     <div className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-primary transition-all duration-500"
                       style={{ width: `${((fixedCount + skippedCount) / totalIssues) * 100}%` }} />
                   </div>
 
-                  {/* Issue Steps Navigation */}
-                  <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
+                  {/* Issue Steps Navigation - scrollable on mobile */}
+                  <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1 scrollbar-thin" style={{ WebkitOverflowScrolling: "touch" }}>
+                    <div className="flex items-center gap-1 mx-auto sm:mx-0">
                     {fixes.map((fix, idx) => {
                       const isDone = fixedSteps.has(fix.id);
                       const isSkipped = skippedSteps.has(fix.id);
@@ -671,49 +669,50 @@ export default function AdminSeo() {
                         </button>
                       );
                     })}
+                    </div>
                   </div>
 
                   {/* Current Fix Details */}
-                  <div className="border border-border rounded-xl p-4 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <div className="border border-border rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
+                    <div className="flex items-start gap-2 md:gap-3">
+                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <AlertTriangle className="w-3.5 h-3.5 md:w-4 md:h-4 text-red-500" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-sm text-foreground">{currentFix.label}</h4>
+                          <h4 className="font-bold text-sm text-foreground break-words">{currentFix.label}</h4>
                           {getPriorityBadge(currentFix.priority)}
                           {currentFix.autoFixable && (
                             <span className="text-[10px] bg-blue-500/15 text-blue-500 px-1.5 py-0.5 rounded-full font-semibold">Auto-fix متاح</span>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">{currentFix.description}</p>
-                        <p className="text-xs text-muted-foreground/70 mt-1">{currentFix.detail}</p>
+                        <p className="text-[11px] text-muted-foreground/70 mt-1">{currentFix.detail}</p>
                       </div>
                     </div>
 
-                    {/* File Path */}
+                    {/* File Path - responsive */}
                     {currentFix.filePath && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
-                        <FileCode className="w-3 h-3" />
-                        <span>{currentFix.filePath}</span>
+                      <div className="flex items-center gap-1.5 text-[11px] md:text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2 overflow-x-auto">
+                        <FileCode className="w-3 h-3 shrink-0" />
+                        <span className="whitespace-nowrap md:whitespace-normal font-mono">{currentFix.filePath}</span>
                       </div>
                     )}
 
-                    {/* Code Block */}
+                    {/* Code Block - mobile optimized */}
                     {currentFix.code && (
-                      <div className="relative">
-                        <div className="flex items-center justify-between bg-muted rounded-t-lg px-3 py-1.5 border border-border">
-                          <div className="flex items-center gap-1.5">
-                            <Code2 className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-[10px] text-muted-foreground font-mono">الكود المطلوب</span>
+                      <div className="relative overflow-hidden rounded-lg border border-border">
+                        <div className="flex items-center justify-between bg-muted px-2 md:px-3 py-1.5 border-b border-border">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Code2 className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <span className="text-[9px] md:text-[10px] text-muted-foreground font-mono truncate">الكود المطلوب</span>
                           </div>
                           <button onClick={() => copyCode(currentFix.code!)}
-                            className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors">
-                            <Copy className="w-3 h-3" /> نسخ
+                            className="flex items-center gap-1 text-[9px] md:text-[10px] text-primary hover:text-primary/80 transition-colors shrink-0">
+                            <Copy className="w-2.5 h-2.5 md:w-3 md:h-3" /> نسخ
                           </button>
                         </div>
-                        <pre className="bg-muted/50 border border-t-0 border-border rounded-b-lg p-3 text-xs font-mono text-foreground whitespace-pre-wrap overflow-x-auto max-h-60 overflow-y-auto" dir="ltr">{currentFix.code}</pre>
+                        <pre className="bg-muted/50 p-2 md:p-3 text-[10px] md:text-xs font-mono text-foreground whitespace-pre-wrap overflow-x-auto max-h-40 md:max-h-60 overflow-y-auto leading-relaxed" dir="ltr">{currentFix.code}</pre>
                       </div>
                     )}
 
@@ -723,29 +722,31 @@ export default function AdminSeo() {
                         <p className="text-xs font-bold text-foreground mb-2">خطوات التطبيق:</p>
                         <ol className="space-y-1.5">
                           {currentFix.instructions.map((inst, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                              <span className="w-4 h-4 rounded-full bg-secondary flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5">{i + 1}</span>
-                              {inst}
+                            <li key={i} className="flex items-start gap-2 text-[11px] md:text-xs text-muted-foreground">
+                              <span className="w-4 h-4 rounded-full bg-secondary flex items-center justify-center text-[8px] md:text-[9px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                              <span className="break-words">{inst}</span>
                             </li>
                           ))}
                         </ol>
                       </div>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-border">
-                      <Button onClick={() => markFixed(currentFix.id)} size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5">
-                        <Check className="w-3.5 h-3.5" /> تم الإصلاح
-                      </Button>
-                      <Button onClick={() => skipStep(currentFix.id)} size="sm" variant="outline" className="gap-1">
-                        تخطي
-                      </Button>
+                    {/* Actions - stack on mobile */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-border">
+                      <div className="flex gap-2">
+                        <Button onClick={() => markFixed(currentFix.id)} size="sm" className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5 text-xs">
+                          <Check className="w-3.5 h-3.5" /> تم الإصلاح
+                        </Button>
+                        <Button onClick={() => skipStep(currentFix.id)} size="sm" variant="outline" className="flex-1 sm:flex-none gap-1 text-xs">
+                          تخطي
+                        </Button>
+                      </div>
                       <div className="flex-1" />
-                      <div className="flex gap-1">
-                        <Button onClick={() => goToStep(currentStep - 1)} disabled={currentStep === 0} size="sm" variant="ghost" className="gap-1 text-xs">
+                      <div className="flex gap-1 justify-center">
+                        <Button onClick={() => goToStep(currentStep - 1)} disabled={currentStep === 0} size="sm" variant="ghost" className="gap-1 text-[11px] md:text-xs px-2">
                           <ChevronRight className="w-3 h-3" /> السابق
                         </Button>
-                        <Button onClick={() => goToStep(currentStep + 1)} disabled={currentStep >= fixes.length - 1} size="sm" variant="ghost" className="gap-1 text-xs">
+                        <Button onClick={() => goToStep(currentStep + 1)} disabled={currentStep >= fixes.length - 1} size="sm" variant="ghost" className="gap-1 text-[11px] md:text-xs px-2">
                           التالي <ChevronLeft className="w-3 h-3" />
                         </Button>
                       </div>
