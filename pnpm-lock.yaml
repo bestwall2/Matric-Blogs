@@ -410,6 +410,9 @@ importers:
       vaul:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      youtube-transcript-plus:
+        specifier: ^2.0.0
+        version: 2.0.0
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -3810,6 +3813,10 @@ packages:
     resolution: {integrity: sha512-CzhO+pFNo8ajLM2d2IW/R93ipy99LWjtwblvC1RsoSUMZgyLbYFr221TnSNT7GjGdYui6P459mw9JH/g/zW2ug==}
     engines: {node: '>=18'}
 
+  youtube-transcript-plus@2.0.0:
+    resolution: {integrity: sha512-n4nnGVV3ZABnvk/sSF+W51c/+P6I23kLwwhOiYeKLeHOGfpjwCUthhoKgQk9dldJEgHCkbyJpuD3vkbBxWqDHA==}
+    engines: {node: '>=20.0.0'}
+
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -6958,6 +6965,8 @@ snapshots:
   yocto-queue@1.2.2: {}
 
   yoctocolors@2.1.2: {}
+
+  youtube-transcript-plus@2.0.0: {}
 
   zod@3.25.76: {}
 
