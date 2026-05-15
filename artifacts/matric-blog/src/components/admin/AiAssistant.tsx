@@ -3,6 +3,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Sparkles, X, Send, Loader2, MessageSquare, Lightbulb, Wrench, ChevronDown } from "lucide-react";
 
+let msgId = 0;
+function nextId() {
+  return `msg_${Date.now()}_${++msgId}`;
+}
+
+interface ChatMessage {
+  id: string;
+  role: "ai" | "user";
+  text: string;
+}
+
 interface QuickAction {
   label: string;
   action: string;
@@ -25,11 +36,14 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<AssistantResponse | null>(null);
   const [chatMsg, setChatMsg] = useState("");
-  const [chatHistory, setChatHistory] = useState<{ role: "ai" | "user"; text: string }[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [error, setError] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const sendingRef = useRef(false);
 
   const fetchSuggestions = useCallback(async (message?: string) => {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     setLoading(true);
     setError(false);
     try {
@@ -42,15 +56,16 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
       if (!res.ok) throw new Error(json.error);
       setData(json);
       if (message) {
-        setChatHistory(prev => [...prev, { role: "user", text: message }, { role: "ai", text: json.message }]);
+        setChatHistory(prev => [...prev, { id: nextId(), role: "user", text: message }, { id: nextId(), role: "ai", text: json.message }]);
       }
     } catch {
       setError(true);
       if (message) {
-        setChatHistory(prev => [...prev, { role: "user", text: message }, { role: "ai", text: "عذراً، حدث خطأ في الاتصال. حاول مرة أخرى." }]);
+        setChatHistory(prev => [...prev, { id: nextId(), role: "user", text: message }, { id: nextId(), role: "ai", text: "عذراً، حدث خطأ في الاتصال. حاول مرة أخرى." }]);
       }
     } finally {
       setLoading(false);
+      sendingRef.current = false;
     }
   }, [page, context]);
 
@@ -66,14 +81,17 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatMsg.trim() || loading) return;
-    setChatHistory(prev => [...prev, { role: "user", text: chatMsg }]);
-    fetchSuggestions(chatMsg);
+    e.stopPropagation();
+    if (!chatMsg.trim() || loading || sendingRef.current) return;
+    const text = chatMsg;
     setChatMsg("");
+    setChatHistory(prev => [...prev, { id: nextId(), role: "user", text }]);
+    fetchSuggestions(text);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    setChatHistory(prev => [...prev, { role: "user", text: suggestion }]);
+    if (loading || sendingRef.current) return;
+    setChatHistory(prev => [...prev, { id: nextId(), role: "user", text: suggestion }]);
     fetchSuggestions(suggestion);
   };
 
@@ -153,8 +171,8 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
                   </div>
                 )}
 
-                {chatHistory.map((msg, i) => (
-                  <div key={i} className={`flex items-start gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                {chatHistory.map((msg) => (
+                  <div key={msg.id} className={`flex items-start gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                     {msg.role === "ai" && (
                       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shrink-0 mt-0.5">
                         <Sparkles className="w-3.5 h-3.5 text-white" />

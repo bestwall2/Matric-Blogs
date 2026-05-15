@@ -4,6 +4,16 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
+const DEBOUNCE_WINDOW_MS = 1000;
+const recentRequests = new Map<string, number>();
+
+setInterval(() => {
+  const cutoff = Date.now() - DEBOUNCE_WINDOW_MS * 10;
+  for (const [key, ts] of recentRequests) {
+    if (ts < cutoff) recentRequests.delete(key);
+  }
+}, DEBOUNCE_WINDOW_MS * 10);
+
 const PAGE_PROMPTS: Record<string, string> = {
   dashboard: `أنت مساعد ذكي ومفيد لمدير موقع ماتريكبلوغ. المستخدم موجود في صفحة لوحة التحكم (Dashboard).
     
@@ -204,6 +214,14 @@ export async function POST(req: NextRequest) {
   try {
     const { page, context, message } = await req.json();
     const pageKey = (page || "dashboard").replace(/^\//, "");
+    const fingerprint = `${pageKey}|${message || ""}`;
+    const now = Date.now();
+    const last = recentRequests.get(fingerprint);
+    if (last && now - last < DEBOUNCE_WINDOW_MS) {
+      return NextResponse.json({ skipped: true });
+    }
+    recentRequests.set(fingerprint, now);
+
     const prompt = getPrompt(pageKey, context, message);
 
     const raw = await callGemini(prompt);
