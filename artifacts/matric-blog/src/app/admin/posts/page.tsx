@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AiAssistant from "@/components/admin/AiAssistant";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { formatDate } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -109,6 +110,7 @@ export default function AdminPosts() {
           </div>
         </div>
       </div>
+      <AiAssistant page="posts" />
     </div>
   );
 }

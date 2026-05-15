@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AiAssistant from "@/components/admin/AiAssistant";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { computeSeoScore } from "@/lib/seo-score";
 import { toast } from "sonner";
@@ -850,6 +851,7 @@ export default function AdminSeo() {
 
         </div>
       </div>
+      <AiAssistant page="seo" />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AiAssistant from "@/components/admin/AiAssistant";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -106,6 +107,7 @@ export default function AdminCategories() {
           </form>
         </DialogContent>
       </Dialog>
+      <AiAssistant page="categories" />
     </div>
   );
 }

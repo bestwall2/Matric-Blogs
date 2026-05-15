@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import TiptapEditor from "@/components/admin/TiptapEditor";
+import AiAssistant from "@/components/admin/AiAssistant";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -379,6 +380,7 @@ export default function PostEditor() {
           </div>
         </div>
       </div>
+      <AiAssistant page="post-editor" />
     </div>
   );
 }

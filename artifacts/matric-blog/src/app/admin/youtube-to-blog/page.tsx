@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AiAssistant from "@/components/admin/AiAssistant";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -283,6 +284,7 @@ export default function YouTubeToBlogPage() {
           </div>
         </div>
       </div>
+      <AiAssistant page="youtube-to-blog" />
     </div>
   );
 }

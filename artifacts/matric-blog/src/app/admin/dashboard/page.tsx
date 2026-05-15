@@ -7,6 +7,7 @@ import { useGetPostsStats, useListAdminPosts } from "@workspace/api-client-react
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AiAssistant from "@/components/admin/AiAssistant";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { formatDate } from "@/lib/utils";
 
@@ -154,6 +155,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+      <AiAssistant page="dashboard" />
     </div>
   );
 }
