@@ -67,7 +67,7 @@ export default function HomeFilteredPosts({ posts, categories }: { posts: Post[]
       )}
 
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-stagger">
           {filtered.map((post) => (
             <ArticleCard key={post.id} post={post} />
           ))}

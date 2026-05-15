@@ -42,6 +42,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className="dark">
+      <head>
+        <noscript>
+          <style>{`
+            .opacity-0 { opacity: 1 !important; }
+            .translate-y-5 { transform: none !important; }
+            .-translate-x-5 { transform: none !important; }
+            .scale-95 { transform: none !important; }
+            .animate-stagger > * { opacity: 1 !important; animation: none !important; }
+          `}</style>
+        </noscript>
+      </head>
       <body className={`${cairo.variable} font-sans antialiased`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{
           __html: JSON.stringify({

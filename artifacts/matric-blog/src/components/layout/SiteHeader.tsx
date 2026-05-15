@@ -53,10 +53,10 @@ export default function SiteHeader() {
               href={link.href}
               data-testid={`link-nav-${link.href.replace("/", "") || "home"}`}
               className={cn(
-                "relative px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200",
+                "relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
                 isActive(link.href)
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-primary bg-primary/5"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               )}
             >
               {link.label}

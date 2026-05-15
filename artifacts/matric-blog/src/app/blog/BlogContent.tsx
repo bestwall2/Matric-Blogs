@@ -42,7 +42,7 @@ export default function BlogContent({ initialData, initialCategories }: { initia
 
   return (
     <>
-      <div className="mb-8">
+      <div className="mb-8 animate-fade-up">
         <h1 className="text-3xl font-black text-foreground mb-1">المدونة</h1>
         <p className="text-muted-foreground text-sm">{total > 0 ? `${total.toLocaleString("ar")} مقال` : "مقالاتنا المتميزة"}</p>
       </div>
@@ -74,7 +74,7 @@ export default function BlogContent({ initialData, initialCategories }: { initia
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}
         </div>
       ) : filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-stagger">
           {filtered.map((post: any) => <ArticleCard key={post.id} post={post} />)}
         </div>
       ) : (

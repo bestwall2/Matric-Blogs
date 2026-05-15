@@ -7,6 +7,7 @@ import { Clock, Eye, Calendar, Share2, Twitter, Facebook, Link as LinkIcon, Chev
 import { useIncrementPostView } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import ArticleCard from "@/components/blog/ArticleCard";
+import AnimateOnScroll from "@/components/ui/AnimateOnScroll";
 import { formatDate, getReadingTime, cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -71,22 +72,22 @@ export default function ArticleClient({ post, related }: { post: Post; related: 
               </Link>
             )}
 
-            <h1 className="text-2xl md:text-3xl font-black text-foreground mb-4 leading-tight">{title}</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-foreground mb-4 leading-tight animate-fade-up">{title}</h1>
 
-            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-6 pb-6 border-b border-border">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-6 pb-6 border-b border-border animate-fade-up delay-100">
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(post.published_at || post.created_at)}</span>
               <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{readingTime} دقيقة للقراءة</span>
               {(post.view_count ?? 0) > 0 && <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{(post.view_count ?? 0).toLocaleString("ar")} مشاهدة</span>}
             </div>
 
             {post.featured_image && (
-              <div className="relative w-full h-64 md:h-80 mb-8">
+              <div className="relative w-full h-64 md:h-80 mb-8 animate-scale-in">
                 <Image src={post.featured_image} alt={title} fill className="object-cover rounded-xl" />
               </div>
             )}
 
             {post.authors && (
-              <div className="flex items-center gap-3 mb-6 p-4 rounded-xl border border-border bg-card/50">
+              <div className="flex items-center gap-3 mb-6 p-4 rounded-xl border border-border bg-card/50 animate-fade-up delay-200">
                 {post.authors.avatar ? (
                   <Image src={post.authors.avatar} alt={post.authors.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
                 ) : (
@@ -101,7 +102,9 @@ export default function ArticleClient({ post, related }: { post: Post; related: 
               </div>
             )}
 
-            <div className="article-html leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} data-testid="article-content" />
+            <AnimateOnScroll animation="fade-up" delay={100}>
+              <div className="article-html leading-relaxed" dangerouslySetInnerHTML={{ __html: content }} data-testid="article-content" />
+            </AnimateOnScroll>
 
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center gap-2">
@@ -113,12 +116,14 @@ export default function ArticleClient({ post, related }: { post: Post; related: 
             </div>
 
             {relatedPosts.length > 0 && (
-              <div className="mt-12">
-                <h2 className="text-lg font-black text-foreground mb-4">مقالات ذات صلة</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {relatedPosts.map((p: Post) => <ArticleCard key={p.id} post={p} />)}
+              <AnimateOnScroll animation="fade-up" delay={200}>
+                <div className="mt-12">
+                  <h2 className="text-lg font-black text-foreground mb-4">مقالات ذات صلة</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-stagger">
+                    {relatedPosts.map((p: Post) => <ArticleCard key={p.id} post={p} />)}
+                  </div>
                 </div>
-              </div>
+              </AnimateOnScroll>
             )}
           </article>
 

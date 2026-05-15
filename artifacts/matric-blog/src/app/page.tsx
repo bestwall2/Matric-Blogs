@@ -56,14 +56,14 @@ export default async function Home() {
       <SiteHeader />
       <main>
         {hero && (
-          <section className="pt-20">
+          <section className="pt-20 animate-fade-up">
             <HeroPost post={hero} />
           </section>
         )}
 
         {secondary.length > 0 && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-stagger">
               {secondary.map((post: any) => (
                 <ArticleCard key={post.id} post={post} />
               ))}
@@ -73,7 +73,7 @@ export default async function Home() {
 
         <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black text-foreground">أحدث المقالات</h2>
+            <h2 className="text-xl font-black text-foreground animate-fade-right">أحدث المقالات</h2>
             <Link href="/blog">
               <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 gap-1">
                 عرض الكل <ArrowLeft className="w-4 h-4" />

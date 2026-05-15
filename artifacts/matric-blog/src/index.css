@@ -179,3 +179,71 @@
   .article-html ul, .article-html ol { margin: 1rem 0 1rem 1.5rem; color: #a3a3a3; }
   .article-html a { color: #e63946; text-decoration: underline; }
 }
+
+/* ═══════════════════════════════════════════════
+   CSS-only animations — Google Bot safe
+   Content is always in DOM. CSS adds motion only.
+   ═══════════════════════════════════════════════ */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeRight {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Single element animations */
+.animate-fade-up   { animation: fadeUp   0.5s ease forwards; }
+.animate-fade-in   { animation: fadeIn   0.6s ease forwards; }
+.animate-fade-right{ animation: fadeRight 0.5s ease forwards; }
+.animate-scale-in  { animation: scaleIn  0.4s ease forwards; }
+
+/* Staggered grid — each child animates in sequence */
+.animate-stagger > * {
+  opacity: 0;
+  animation: fadeUp 0.5s ease forwards;
+}
+.animate-stagger > *:nth-child(1)  { animation-delay: 0.05s; }
+.animate-stagger > *:nth-child(2)  { animation-delay: 0.10s; }
+.animate-stagger > *:nth-child(3)  { animation-delay: 0.15s; }
+.animate-stagger > *:nth-child(4)  { animation-delay: 0.20s; }
+.animate-stagger > *:nth-child(5)  { animation-delay: 0.25s; }
+.animate-stagger > *:nth-child(6)  { animation-delay: 0.30s; }
+.animate-stagger > *:nth-child(7)  { animation-delay: 0.35s; }
+.animate-stagger > *:nth-child(8)  { animation-delay: 0.40s; }
+.animate-stagger > *:nth-child(9)  { animation-delay: 0.45s; }
+.animate-stagger > *:nth-child(10) { animation-delay: 0.50s; }
+.animate-stagger > *:nth-child(n+11) { animation-delay: 0.55s; }
+
+/* Delay utilities for manual control */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+
+/* Respect user's motion preferences — accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-fade-right,
+  .animate-scale-in,
+  .animate-stagger > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
