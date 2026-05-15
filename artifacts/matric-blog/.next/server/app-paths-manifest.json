@@ -13,6 +13,7 @@
   "/admin/posts/page": "app/admin/posts/page.js",
   "/admin/seo/page": "app/admin/seo/page.js",
   "/admin/youtube-to-blog/page": "app/admin/youtube-to-blog/page.js",
+  "/api/ai-assistant/route": "app/api/ai-assistant/route.js",
   "/api/audit/route": "app/api/audit/route.js",
   "/api/generate-image/route": "app/api/generate-image/route.js",
   "/api/youtube-to-blog/route": "app/api/youtube-to-blog/route.js",
