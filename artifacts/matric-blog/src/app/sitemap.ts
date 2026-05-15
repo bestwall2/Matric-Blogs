@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://matric-blogs-26.vercel.app";
+export const revalidate = 3600;
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://matric-blogs-26.vercel.app").replace(/\/$/, "");
 
 function createServiceClient() {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -30,19 +32,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
       const { data: posts, error } = await supabase
         .from("posts")
-        .select("slug, updated_at, created_at")
+        .select("slug, updated_at, created_at, published_at")
         .or(
           `and(status.eq.published,published_at.lte.${now}),and(status.eq.scheduled,scheduled_at.lte.${now})`
         )
         .order("published_at", { ascending: false });
 
       if (!error && posts && posts.length > 0) {
-        const postPages: MetadataRoute.Sitemap = posts.map((post) => ({
-          url: `${SITE_URL}/blog/${post.slug}`,
-          lastModified: new Date(post.updated_at || post.created_at),
-          changeFrequency: "weekly" as const,
-          priority: 0.8,
-        }));
+        const postPages: MetadataRoute.Sitemap = posts.map((post) => {
+          const date = post.updated_at || post.created_at || post.published_at || new Date().toISOString();
+          const validDate = new Date(date);
+          return {
+            url: `${SITE_URL}/blog/${post.slug}`,
+            lastModified: isNaN(validDate.getTime()) ? new Date() : validDate,
+            changeFrequency: "weekly" as const,
+            priority: 0.8,
+          };
+        });
         return [...staticPages, ...postPages];
       }
     } catch (e) {
@@ -56,12 +62,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
     if (res.ok) {
       const data = await res.json();
-      const postPages: MetadataRoute.Sitemap = (data.posts ?? []).map((post: any) => ({
-        url: `${SITE_URL}/blog/${post.slug}`,
-        lastModified: new Date(post.updated_at || post.created_at),
-        changeFrequency: "weekly" as const,
-        priority: 0.8,
-      }));
+      const postPages: MetadataRoute.Sitemap = (data.posts ?? []).map((post: any) => {
+        const date = post.updated_at || post.created_at || post.published_at || new Date().toISOString();
+        const validDate = new Date(date);
+        return {
+          url: `${SITE_URL}/blog/${post.slug}`,
+          lastModified: isNaN(validDate.getTime()) ? new Date() : validDate,
+          changeFrequency: "weekly" as const,
+          priority: 0.8,
+        };
+      });
       return [...staticPages, ...postPages];
     }
   } catch (e) {
