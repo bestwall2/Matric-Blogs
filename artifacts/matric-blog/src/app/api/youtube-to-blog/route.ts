@@ -115,7 +115,19 @@ Return ONLY a valid JSON object (no markdown, no extra text) with:
 
   const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
   try {
-    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    let cleaned = raw.trim();
+
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+    }
+
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+
+    const parsed = JSON.parse(cleaned);
     return NextResponse.json({ post: parsed, transcriptLength: transcript.length });
   } catch {
     return NextResponse.json({ error: "Failed to parse AI response", raw }, { status: 500 });
