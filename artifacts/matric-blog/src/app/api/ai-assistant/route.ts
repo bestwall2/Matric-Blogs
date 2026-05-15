@@ -7,12 +7,12 @@ const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const DEBOUNCE_WINDOW_MS = 1000;
 const recentRequests = new Map<string, number>();
 
-setInterval(() => {
+function cleanupStale() {
   const cutoff = Date.now() - DEBOUNCE_WINDOW_MS * 10;
   for (const [key, ts] of recentRequests) {
     if (ts < cutoff) recentRequests.delete(key);
   }
-}, DEBOUNCE_WINDOW_MS * 10);
+}
 
 const PAGE_PROMPTS: Record<string, string> = {
   dashboard: `أنت مساعد ذكي ومفيد لمدير موقع ماتريكبلوغ. المستخدم موجود في صفحة لوحة التحكم (Dashboard).
@@ -212,6 +212,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    cleanupStale();
     const { page, context, message } = await req.json();
     const pageKey = (page || "dashboard").replace(/^\//, "");
     const fingerprint = `${pageKey}|${message || ""}`;

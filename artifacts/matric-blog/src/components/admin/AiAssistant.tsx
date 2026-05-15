@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Sparkles, X, Send, Loader2, MessageSquare, Lightbulb, Wrench, ChevronDown } from "lucide-react";
+import { Sparkles, X, Send, Loader2, MessageSquare, Lightbulb, Wrench } from "lucide-react";
 
 let msgId = 0;
 function nextId() {
@@ -34,18 +34,20 @@ interface AiAssistantProps {
 export default function AiAssistant({ page, context }: AiAssistantProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<AssistantResponse | null>(null);
   const [chatMsg, setChatMsg] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [error, setError] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [quickActions, setQuickActions] = useState<QuickAction[]>([]);
+  const [errored, setErrored] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const sendingRef = useRef(false);
+  const initialLoadedRef = useRef(false);
 
   const fetchSuggestions = useCallback(async (message?: string) => {
     if (sendingRef.current) return;
     sendingRef.current = true;
     setLoading(true);
-    setError(false);
+    if (!message) setErrored(false);
     try {
       const res = await fetch("/api/ai-assistant", {
         method: "POST",
@@ -54,14 +56,19 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      setData(json);
+      if (json.skipped) return;
+      setSuggestions(json.suggestions ?? []);
+      setQuickActions(json.quickActions ?? []);
       if (message) {
         setChatHistory(prev => [...prev, { id: nextId(), role: "user", text: message }, { id: nextId(), role: "ai", text: json.message }]);
+      } else if (chatHistory.length === 0) {
+        setChatHistory([{ id: nextId(), role: "ai", text: json.message }]);
       }
     } catch {
-      setError(true);
       if (message) {
         setChatHistory(prev => [...prev, { id: nextId(), role: "user", text: message }, { id: nextId(), role: "ai", text: "عذراً، حدث خطأ في الاتصال. حاول مرة أخرى." }]);
+      } else {
+        setErrored(true);
       }
     } finally {
       setLoading(false);
@@ -70,18 +77,18 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
   }, [page, context]);
 
   useEffect(() => {
-    if (open && !data && !loading) {
+    if (open && chatHistory.length === 0 && !initialLoadedRef.current && !errored) {
+      initialLoadedRef.current = true;
       fetchSuggestions();
     }
   }, [open]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
+  }, [chatHistory, loading]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     if (!chatMsg.trim() || loading || sendingRef.current) return;
     const text = chatMsg;
     setChatMsg("");
@@ -119,7 +126,7 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
       )}
 
       {open && (
-        <div className="fixed bottom-5 left-5 z-50 w-80 sm:w-96 max-h-[600px] bg-card border border-border rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300" dir="rtl">
+        <div className="fixed bottom-5 left-5 z-50 w-80 sm:w-96 max-h-[600px] bg-card border border-border rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden duration-300" dir="rtl">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-l from-red-500/10 to-rose-600/5 border-b border-border shrink-0">
             <div className="flex items-center gap-2.5">
@@ -141,16 +148,16 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
 
           {/* Chat & Suggestions */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[300px] max-h-[400px]">
-            {loading && !chatHistory.length ? (
+            {chatHistory.length === 0 && loading ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 <p className="text-xs text-muted-foreground">جاري تحليل الصفحة...</p>
               </div>
-            ) : error && !data ? (
+            ) : chatHistory.length === 0 && errored ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 py-8">
                 <p className="text-xs text-muted-foreground">تعذر الاتصال بالمساعد</p>
                 <button
-                  onClick={() => fetchSuggestions()}
+                  onClick={() => { setErrored(false); fetchSuggestions(); }}
                   className="text-xs text-primary hover:underline"
                 >
                   إعادة المحاولة
@@ -158,19 +165,6 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
               </div>
             ) : (
               <>
-                {chatHistory.length === 0 && data && (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shrink-0 mt-0.5">
-                        <Sparkles className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <div className="bg-secondary rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-xs text-foreground leading-relaxed">
-                        {data.message}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {chatHistory.map((msg) => (
                   <div key={msg.id} className={`flex items-start gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                     {msg.role === "ai" && (
@@ -183,7 +177,7 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
                         <MessageSquare className="w-3.5 h-3.5 text-primary" />
                       </div>
                     )}
-                    <div className={`text-xs leading-relaxed max-w-[80%] px-3.5 py-2.5 rounded-2xl ${
+                    <div className={`text-xs leading-relaxed max-w-[80%] px-3.5 py-2.5 rounded-2xl break-words whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground rounded-tl-sm"
                         : "bg-secondary text-foreground rounded-tr-sm"
@@ -209,15 +203,15 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
             )}
 
             {/* Suggestions */}
-            {data?.suggestions && data.suggestions.length > 0 && chatHistory.length === 0 && (
+            {suggestions.length > 0 && !loading && (
               <div className="pt-2 space-y-1.5">
                 <p className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
                   <Lightbulb className="w-3 h-3" />
-                  اقتراحات سريعة
+                  اقتراحات
                 </p>
-                {data.suggestions.map((s, i) => (
+                {suggestions.map((s, i) => (
                   <button
-                    key={i}
+                    key={`${page}_sug_${i}`}
                     onClick={() => handleSuggestionClick(s)}
                     className="w-full text-right text-xs text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary px-3 py-2 rounded-xl transition-colors border border-border/50"
                   >
@@ -228,16 +222,16 @@ export default function AiAssistant({ page, context }: AiAssistantProps) {
             )}
 
             {/* Quick Actions */}
-            {data?.quickActions && data.quickActions.length > 0 && chatHistory.length === 0 && (
+            {quickActions.length > 0 && !loading && (
               <div className="pt-1 space-y-1.5">
                 <p className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
                   <Wrench className="w-3 h-3" />
                   إجراءات سريعة
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.quickActions.map((qa, i) => (
+                  {quickActions.map((qa, i) => (
                     <button
-                      key={i}
+                      key={`${page}_act_${i}`}
                       onClick={() => handleSuggestionClick(qa.description)}
                       className="text-[11px] bg-primary/10 text-primary hover:bg-primary/20 px-2.5 py-1.5 rounded-lg transition-colors font-medium"
                     >
